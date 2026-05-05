@@ -4,6 +4,12 @@ An open-source LLM skill for generating a single local HTML explainer for a code
 
 The generated HTML can mix prose, file notes, callouts, lists, and Mermaid diagrams. Mermaid renders in the browser, so the skill does not require a local Mermaid renderer.
 
+## Preview
+
+[![OAuth 2.0 visual explainer screenshot](examples/oauth-2-overview.png)](examples/oauth-2-overview.html)
+
+Example artifact: [`examples/oauth-2-overview.html`](examples/oauth-2-overview.html)
+
 ## Structure
 
 The installable skill lives in `skills/visual-explaining/`:
@@ -13,6 +19,9 @@ visual-explaining-skill/
 ├── README.md
 ├── LICENSE
 ├── package.json
+├── examples/
+│   ├── oauth-2-overview.html
+│   └── oauth-2-overview.png
 └── skills/
     └── visual-explaining/
         ├── SKILL.md
