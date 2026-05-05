@@ -1,0 +1,22 @@
+{
+  "name": "visual-explaining-skill",
+  "version": "0.1.0",
+  "description": "An LLM skill for generating visual HTML explainers of codebases, modules, fixes, and features.",
+  "license": "MIT",
+  "private": false,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test scripts/render-html.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "SKILL.md",
+    "scripts",
+    "templates",
+    "references",
+    "README.md",
+    "LICENSE"
+  ]
+}
