@@ -6,16 +6,14 @@
   "private": false,
   "type": "commonjs",
   "scripts": {
-    "test": "node --test scripts/render-html.test.js"
+    "test": "node --test tests/render-html.test.js"
   },
   "engines": {
     "node": ">=20"
   },
   "files": [
-    "SKILL.md",
-    "scripts",
-    "templates",
-    "references",
+    "skills",
+    "tests",
     "README.md",
     "LICENSE"
   ]

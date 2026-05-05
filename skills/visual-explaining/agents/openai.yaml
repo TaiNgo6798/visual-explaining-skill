@@ -1,0 +1,7 @@
+interface:
+  display_name: "Visual Explaining"
+  short_description: "Generate visual HTML code explainers"
+  default_prompt: "Use $visual-explaining to create a visual overview of this codebase."
+
+policy:
+  allow_implicit_invocation: true

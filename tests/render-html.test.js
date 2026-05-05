@@ -9,7 +9,7 @@ const {
   renderVisualExplainerHtml,
   readConfiguredExportDir,
   resolveOutputPath,
-} = require('./render-html.js');
+} = require('../skills/visual-explaining/scripts/render-html.js');
 
 test('sanitizeMermaidSource quotes flowchart labels with package-style paths', () => {
   const source = 'flowchart TD\n  Shared[SHARED[@faktoora/shared/lib/foo]] --> App';

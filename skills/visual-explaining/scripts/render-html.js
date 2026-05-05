@@ -6,7 +6,7 @@ const os = require('node:os');
 const { pathToFileURL } = require('node:url');
 const { execFileSync } = require('node:child_process');
 
-const templatePath = path.join(__dirname, '..', 'templates', 'visual-explainer.html');
+const templatePath = path.join(__dirname, '..', 'assets', 'visual-explainer.html');
 const template = fs.readFileSync(templatePath, 'utf8');
 const DEFAULT_EXPORT_PATH_FILE = path.join(os.homedir(), '.visual-explaining-export-path');
 const LEGACY_EXPORT_PATH_FILE = path.join(os.homedir(), '.ck-visual-explaining-export-path');
