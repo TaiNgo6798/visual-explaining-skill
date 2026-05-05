@@ -13,8 +13,6 @@ visual-explaining-skill/
 ├── README.md
 ├── LICENSE
 ├── package.json
-├── tests/
-│   └── render-html.test.js
 └── skills/
     └── visual-explaining/
         ├── SKILL.md
@@ -35,18 +33,105 @@ visual-explaining-skill/
 - `skills/visual-explaining/scripts/render-html.js` - the helper that renders an explainer spec into HTML.
 - `skills/visual-explaining/assets/visual-explainer.html` - the browser-rendered HTML template.
 - `skills/visual-explaining/references/html-layouts.md` - layout and spec examples for agents.
-- `tests/render-html.test.js` - Node test coverage for the renderer.
 
 ## Requirements
 
 - Node.js 20 or newer.
 - A browser with network access for Mermaid and PNG export dependencies loaded from jsDelivr.
 
-## Test
+## Install
+
+Clone this repository first:
 
 ```bash
-npm test
+git clone https://github.com/TaiNgo6798/visual-explaining-skill.git
+cd visual-explaining-skill
 ```
+
+Then copy `skills/visual-explaining/` into the skill directory for your LLM tool.
+
+### Codex
+
+User-level install:
+
+```bash
+mkdir -p ~/.codex/skills
+cp -R skills/visual-explaining ~/.codex/skills/
+```
+
+Restart Codex, then ask: `Use $visual-explaining to give me a visual overview of this repo.`
+
+### Claude Code
+
+User-level install:
+
+```bash
+mkdir -p ~/.claude/skills
+cp -R skills/visual-explaining ~/.claude/skills/
+```
+
+Project-level install:
+
+```bash
+mkdir -p .claude/skills
+cp -R skills/visual-explaining .claude/skills/
+```
+
+Restart Claude Code, then ask: `Use visual-explaining to explain this module.`
+
+### Gemini CLI
+
+User-level install:
+
+```bash
+mkdir -p ~/.gemini/skills
+cp -R skills/visual-explaining ~/.gemini/skills/
+```
+
+Project-level install:
+
+```bash
+mkdir -p .gemini/skills
+cp -R skills/visual-explaining .gemini/skills/
+```
+
+In Gemini CLI, run `/skills reload` or restart the session. You can check discovery with `/skills list`.
+
+### OpenCode
+
+User-level install:
+
+```bash
+mkdir -p ~/.config/opencode/skills
+cp -R skills/visual-explaining ~/.config/opencode/skills/
+```
+
+Project-level install:
+
+```bash
+mkdir -p .opencode/skills
+cp -R skills/visual-explaining .opencode/skills/
+```
+
+Restart OpenCode so it can discover the new `SKILL.md`.
+
+### Cursor
+
+Project-level install:
+
+```bash
+mkdir -p .cursor/skills
+cp -R skills/visual-explaining .cursor/skills/
+```
+
+Portable project install:
+
+```bash
+mkdir -p .agents/skills
+cp -R skills/visual-explaining .agents/skills/
+```
+
+Reload the Cursor window, then invoke the skill from Agent chat with `/visual-explaining` or ask for a visual code overview.
 
 ## Manual Usage
 
