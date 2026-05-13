@@ -106,8 +106,8 @@ function renderFilesBlock(block) {
       }
 
       const filePath = item && item.path ? `<code>${escapeHtml(item.path)}</code>` : '';
-      const note = item && item.note ? `<span>${renderInlineText(item.note)}</span>` : '';
-      return `<li>${filePath}${note}</li>`;
+      const note = item && item.note ? `<span class="file-note">${renderInlineText(item.note)}</span>` : '';
+      return `<li><div class="file-item">${filePath}${note}</div></li>`;
     })
     .join('');
 
