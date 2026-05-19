@@ -337,7 +337,7 @@
           fontFamily: "Georgia, Times New Roman, serif",
         },
         flowchart: {
-          curve: "basis",
+          curve: "cardinal",
           htmlLabels: false,
           padding: 20,
           nodeSpacing: 50,
@@ -421,6 +421,239 @@
         svg.setAttribute("viewBox", `${minX} ${minY} ${width} ${height}`);
       };
 
+      const getBoxInGraphSpace = (shape, graph) => {
+        const box = shape.getBBox();
+        const graphMatrix = graph.getScreenCTM();
+        const shapeMatrix = shape.getScreenCTM();
+
+        if (!graphMatrix || !shapeMatrix) {
+          return null;
+        }
+
+        const matrix = graphMatrix.inverse().multiply(shapeMatrix);
+        const points = [
+          new DOMPoint(box.x, box.y),
+          new DOMPoint(box.x + box.width, box.y),
+          new DOMPoint(box.x + box.width, box.y + box.height),
+          new DOMPoint(box.x, box.y + box.height),
+        ].map((point) => point.matrixTransform(matrix));
+        const xValues = points.map((point) => point.x);
+        const yValues = points.map((point) => point.y);
+
+        return {
+          x: Math.min(...xValues),
+          y: Math.min(...yValues),
+          width: Math.max(...xValues) - Math.min(...xValues),
+          height: Math.max(...yValues) - Math.min(...yValues),
+        };
+      };
+
+      const pointIsInsideBox = (point, box) =>
+        point.x >= box.x &&
+        point.x <= box.x + box.width &&
+        point.y >= box.y &&
+        point.y <= box.y + box.height;
+
+      const getLineBoxIntersection = (outsidePoint, insidePoint, box) => {
+        const deltaX = insidePoint.x - outsidePoint.x;
+        const deltaY = insidePoint.y - outsidePoint.y;
+        const candidates = [];
+
+        if (deltaX !== 0) {
+          [box.x, box.x + box.width].forEach((x) => {
+            const time = (x - outsidePoint.x) / deltaX;
+            const y = outsidePoint.y + deltaY * time;
+            if (time >= 0 && time <= 1 && y >= box.y && y <= box.y + box.height) {
+              candidates.push({ x, y, time });
+            }
+          });
+        }
+
+        if (deltaY !== 0) {
+          [box.y, box.y + box.height].forEach((y) => {
+            const time = (y - outsidePoint.y) / deltaY;
+            const x = outsidePoint.x + deltaX * time;
+            if (time >= 0 && time <= 1 && x >= box.x && x <= box.x + box.width) {
+              candidates.push({ x, y, time });
+            }
+          });
+        }
+
+        return candidates.sort((a, b) => a.time - b.time)[0] || insidePoint;
+      };
+
+      const getPathPoints = (path) => {
+        const tokens = path.getAttribute("d")?.match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g) || [];
+        const points = [];
+        let command = "";
+
+        for (let index = 0; index < tokens.length; index += 1) {
+          if (/^[a-zA-Z]$/.test(tokens[index])) {
+            command = tokens[index].toUpperCase();
+            continue;
+          }
+
+          if (["H", "V", "A"].includes(command)) {
+            return null;
+          }
+
+          const xTokenIndex = index;
+          const yTokenIndex = index + 1;
+          const x = Number(tokens[xTokenIndex]);
+          const y = Number(tokens[yTokenIndex]);
+
+          if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            return null;
+          }
+
+          points.push({ x, y, xTokenIndex, yTokenIndex });
+          index += 1;
+        }
+
+        return { tokens, points };
+      };
+
+      const movePathPoint = (pathData, point, nextPoint) => {
+        pathData.tokens[point.xTokenIndex] = String(Number(nextPoint.x.toFixed(2)));
+        pathData.tokens[point.yTokenIndex] = String(Number(nextPoint.y.toFixed(2)));
+      };
+
+      const pointsMatch = (firstPoint, secondPoint) =>
+        Math.abs(firstPoint.x - secondPoint.x) < 0.01 &&
+        Math.abs(firstPoint.y - secondPoint.y) < 0.01;
+
+      const getCommandStartIndex = (tokens, point) => {
+        for (let index = point.xTokenIndex - 1; index >= 0; index -= 1) {
+          if (/^[a-zA-Z]$/.test(tokens[index])) {
+            return index;
+          }
+        }
+
+        return -1;
+      };
+
+      const removeTrailingDuplicateLine = (pathData) => {
+        const points = pathData.points;
+
+        if (points.length < 2) {
+          return;
+        }
+
+        const lastPoint = points[points.length - 1];
+        const previousPoint = points[points.length - 2];
+        const commandStartIndex = getCommandStartIndex(pathData.tokens, lastPoint);
+
+        if (commandStartIndex < 0 || pathData.tokens[commandStartIndex].toUpperCase() !== "L") {
+          return;
+        }
+
+        if (pointsMatch(previousPoint, lastPoint)) {
+          pathData.tokens.splice(commandStartIndex, lastPoint.yTokenIndex - commandStartIndex + 1);
+        }
+      };
+
+      const trimInsideHeadToBoundary = (pathData, box) => {
+        const points = pathData.points;
+        let lastInsideIndex = 0;
+
+        while (
+          lastInsideIndex + 1 < points.length &&
+          pointIsInsideBox(points[lastInsideIndex + 1], box)
+        ) {
+          lastInsideIndex += 1;
+        }
+
+        const outsidePoint = points[lastInsideIndex + 1];
+
+        if (!outsidePoint) {
+          return false;
+        }
+
+        const boundaryPoint = getLineBoxIntersection(outsidePoint, points[lastInsideIndex], box);
+        points.slice(0, lastInsideIndex + 1).forEach((point) => {
+          movePathPoint(pathData, point, boundaryPoint);
+        });
+        return true;
+      };
+
+      const trimInsideTailToBoundary = (pathData, box) => {
+        const points = pathData.points;
+        let firstInsideIndex = points.length - 1;
+
+        while (
+          firstInsideIndex - 1 >= 0 &&
+          pointIsInsideBox(points[firstInsideIndex - 1], box)
+        ) {
+          firstInsideIndex -= 1;
+        }
+
+        const outsidePoint = points[firstInsideIndex - 1];
+
+        if (!outsidePoint) {
+          return false;
+        }
+
+        const boundaryPoint = getLineBoxIntersection(outsidePoint, points[firstInsideIndex], box);
+        points.slice(firstInsideIndex).forEach((point) => {
+          movePathPoint(pathData, point, boundaryPoint);
+        });
+        return true;
+      };
+
+      const trimPathStartToBox = (pathData, boxes) => {
+        const box = boxes.find((candidate) => pointIsInsideBox(pathData.points[0], candidate));
+        return box ? trimInsideHeadToBoundary(pathData, box) : false;
+      };
+
+      const trimPathEndToBox = (pathData, boxes) => {
+        const point = pathData.points[pathData.points.length - 1];
+        const box = boxes.find((candidate) => pointIsInsideBox(point, candidate));
+        return box ? trimInsideTailToBoundary(pathData, box) : false;
+      };
+
+      const trimEdgesToNodeBorders = (host) => {
+        const graph = host.querySelector("svg > g");
+
+        if (!graph) {
+          return;
+        }
+
+        const boxes = Array.from(graph.querySelectorAll(".node rect"))
+          .map((rect) => getBoxInGraphSpace(rect, graph))
+          .filter((box) => box && box.width > 0 && box.height > 0);
+
+        graph.querySelectorAll(".edgePaths path").forEach((path) => {
+          const pathData = getPathPoints(path);
+
+          if (!pathData || pathData.points.length < 2) {
+            return;
+          }
+
+          const didTrimStart = trimPathStartToBox(pathData, boxes);
+          const didTrimEnd = trimPathEndToBox(pathData, boxes);
+
+          if (didTrimStart || didTrimEnd) {
+            removeTrailingDuplicateLine(pathData);
+            path.setAttribute("d", pathData.tokens.join(" "));
+          }
+        });
+      };
+
+      const bringEdgesToFront = (host) => {
+        const graph = host.querySelector("svg > g");
+
+        if (!graph) {
+          return;
+        }
+
+        ["edgePaths", "edgeLabels"].forEach((className) => {
+          const group = graph.querySelector(`g.${className}`);
+          if (group) {
+            graph.appendChild(group);
+          }
+        });
+      };
+
       const blocks = Array.from(document.querySelectorAll("[data-mermaid-source]"));
       const renders = blocks.map(async (block, index) => {
         const source = block.textContent.trim();
@@ -429,6 +662,8 @@
         const { svg } = await mermaid.render(diagramId, source);
         host.innerHTML = svg;
         spaceMultiLineLabels(host);
+        trimEdgesToNodeBorders(host);
+        bringEdgesToFront(host);
         refreshSvgViewBox(host);
       });
 

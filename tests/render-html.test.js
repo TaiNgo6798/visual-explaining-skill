@@ -29,16 +29,25 @@ test('sanitizeMermaidSource quotes flowchart labels with Mermaid-sensitive punct
   );
 });
 
-test('sanitizeMermaidSource keeps simple flowchart labels unchanged', () => {
+test('sanitizeMermaidSource quotes simple flowchart labels as a strict default', () => {
   const source = 'flowchart TD\n  User[Shared Cache] --> API';
 
-  assert.equal(sanitizeMermaidSource(source), source);
+  assert.equal(sanitizeMermaidSource(source), 'flowchart TD\n  User["Shared Cache"] --> API');
 });
 
 test('sanitizeMermaidSource preserves labels that are already quoted', () => {
   const source = 'flowchart TD\n  Shared["Already quoted / stable"] --> App';
 
-  assert.equal(sanitizeMermaidSource(source), source);
+  assert.equal(sanitizeMermaidSource(source), 'flowchart TD\n  Shared["Already quoted / stable"] --> App');
+});
+
+test('sanitizeMermaidSource normalizes multiline quoted labels with escaped nested quotes', () => {
+  const source = 'flowchart TD\n  DB["(\\"Database\n(Prisma)\\")"] --> Resolver';
+
+  assert.equal(
+    sanitizeMermaidSource(source),
+    'flowchart TD\n  DB["(Database<br/>(Prisma))"] --> Resolver',
+  );
 });
 
 test('sanitizeMermaidSource quotes labels with nested brackets', () => {
@@ -57,6 +66,12 @@ test('sanitizeMermaidSource quotes decision labels with bracket notation', () =>
     sanitizeMermaidSource(source),
     'flowchart TD\n  c3{"Device AND userFeatures[type]?"} -->|yes| c4',
   );
+});
+
+test('sanitizeMermaidSource quotes simple decision labels as a strict default', () => {
+  const source = 'flowchart TD\n  Gate{Has access} -->|yes| Done';
+
+  assert.equal(sanitizeMermaidSource(source), 'flowchart TD\n  Gate{"Has access"} -->|yes| Done');
 });
 
 test('sanitizeMermaidSource quotes punctuation-heavy labels inside subgraphs', () => {
@@ -284,6 +299,32 @@ test('renderVisualExplainerHtml increases Mermaid multi-line label spacing', () 
   assert.match(html, /centerLabelInShape\(node, rect, label\);/);
   assert.match(html, /spaceMultiLineLabels\(host\);/);
   assert.match(html, /refreshSvgViewBox\(host\);/);
+  assert.match(html, /bringEdgesToFront\(host\);/);
+});
+
+test('renderVisualExplainerHtml trims Mermaid arrows to expanded node borders', () => {
+  const html = renderVisualExplainerHtml({
+    title: 'Arrow Bounds',
+    sections: [
+      {
+        heading: 'Flow',
+        blocks: [
+          {
+            type: 'mermaid',
+            mermaid: 'flowchart TD\n  API[API] --> DB[(Database<br/>(Prisma))]',
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.match(html, /const trimEdgesToNodeBorders = \(host\) => {/);
+  assert.match(html, /curve: "cardinal"/);
+  assert.match(html, /trimPathEndToBox\(pathData, boxes\)/);
+  assert.match(html, /trimInsideTailToBoundary\(pathData, box\)/);
+  assert.match(html, /removeTrailingDuplicateLine\(pathData\);/);
+  assert.match(html, /trimEdgesToNodeBorders\(host\);/);
+  assert.match(html, /bringEdgesToFront\(host\);\n\s*refreshSvgViewBox\(host\);/);
 });
 
 test('readConfiguredExportDir returns null when config file is missing', () => {

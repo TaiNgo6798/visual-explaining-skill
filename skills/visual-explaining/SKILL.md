@@ -136,12 +136,13 @@ Rules:
 - Keep labels compact so rendered SVG stays readable
 
 Mermaid label safety:
-- Do not put raw double quotes inside quoted node, edge, or subgraph labels.
-- Avoid labels like `Table["... "CLUSTERING DESC createdAt" ..."]`; Mermaid may parse the inner quote as a new string token near `end`.
-- Prefer `Table["... CLUSTERING DESC createdAt"]`, `Table["... 'CLUSTERING DESC createdAt'"]`, or split long details with `<br/>`.
-- Quote decision labels that contain bracket notation or punctuation, for example `Gate{"Device AND userFeatures[type]?"}` instead of `Gate{Device AND userFeatures[type]?}`.
-- Put multi-line flowchart node text in quoted labels, for example `GroupA["Group A\nisDisabledField"]`, so Mermaid can size the node around the text.
-- If the browser shows a Mermaid parse error, simplify the reported line's label first: remove nested quotes, brackets, and punctuation before changing diagram structure.
+- Treat flowchart labels as strict data: every node label must be quoted, even simple text, for example `API["API"]`.
+- Every decision label must be quoted, for example `Gate{"Has access"}` and `Gate{"Device AND userFeatures[type]?"}`.
+- Do not put nested double quotes inside labels. Use plain text or single quotes inside the label.
+- Do not put raw line breaks inside quoted labels. Use `<br/>`, for example `DB["Database<br/>(Prisma)"]`.
+- Do not wrap label text in escaped quotes or extra parentheses like `DB["(\"Database\n(Prisma)\")"]`; write `DB["Database<br/>(Prisma)"]`.
+- Edge labels should stay compact and avoid brackets or double quotes. Prefer `-->|yes|` or `-->|reads draft|`.
+- If the browser shows a Mermaid parse error, simplify the reported line's label first: remove nested quotes, brackets, raw newlines, and punctuation before changing diagram structure.
 
 ### Step 6: Generate the HTML Artifact
 

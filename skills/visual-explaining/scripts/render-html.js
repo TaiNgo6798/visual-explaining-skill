@@ -134,13 +134,53 @@ function isAlreadyQuotedFlowchartLabel(label) {
 }
 
 function requiresQuotedFlowchartLabel(label) {
-  if (isAlreadyQuotedFlowchartLabel(label)) {
-    return false;
+  return String(label || '').trim().length > 0;
+}
+
+function normalizeFlowchartLabel(label) {
+  let normalized = label;
+  if (isAlreadyQuotedFlowchartLabel(normalized)) {
+    normalized = normalized.trim().slice(1, -1);
   }
 
-  // Keep plain labels unchanged, but quote anything that could be parsed as
-  // Mermaid syntax rather than literal text.
-  return /[^A-Za-z0-9_.\-\s]/.test(label);
+  normalized = normalized
+    .replace(/\\"/g, '"')
+    .replace(/\n+/g, '<br/>');
+
+  if (normalized.includes('"')) {
+    normalized = normalized.replace(/"/g, '');
+  }
+
+  return normalized;
+}
+
+function isEscaped(source, index) {
+  let slashCount = 0;
+  for (let cursor = index - 1; cursor >= 0 && source[cursor] === '\\'; cursor -= 1) {
+    slashCount += 1;
+  }
+
+  return slashCount % 2 === 1;
+}
+
+function isInsideDoubleQuotedText(source, index) {
+  let quoteCount = 0;
+
+  for (let cursor = 0; cursor < index; cursor += 1) {
+    if (source[cursor] === '"' && !isEscaped(source, cursor)) {
+      quoteCount += 1;
+    }
+  }
+
+  return quoteCount % 2 === 1;
+}
+
+function isInsideEdgeLabel(source, index) {
+  const lineStart = source.lastIndexOf('\n', index - 1) + 1;
+  const linePrefix = source.slice(lineStart, index);
+  const pipeCount = (linePrefix.match(/\|/g) || []).length;
+
+  return pipeCount % 2 === 1;
 }
 
 function sanitizeDelimitedFlowchartLabels(source, openCharacter, closeCharacter, quoteLabel) {
@@ -148,7 +188,11 @@ function sanitizeDelimitedFlowchartLabels(source, openCharacter, closeCharacter,
 
   for (let index = 0; index < source.length; index += 1) {
     const character = source[index];
-    if (character !== openCharacter) {
+    if (
+      character !== openCharacter ||
+      isInsideDoubleQuotedText(source, index) ||
+      isInsideEdgeLabel(source, index)
+    ) {
       sanitized += character;
       continue;
     }
@@ -156,7 +200,7 @@ function sanitizeDelimitedFlowchartLabels(source, openCharacter, closeCharacter,
     let depth = 1;
     let cursor = index + 1;
 
-    while (cursor < source.length && source[cursor] !== '\n' && depth > 0) {
+    while (cursor < source.length && depth > 0) {
       if (source[cursor] === openCharacter) {
         depth += 1;
       } else if (source[cursor] === closeCharacter) {
@@ -172,7 +216,10 @@ function sanitizeDelimitedFlowchartLabels(source, openCharacter, closeCharacter,
     }
 
     const label = source.slice(index + 1, cursor - 1);
-    sanitized += requiresQuotedFlowchartLabel(label) ? quoteLabel(label) : `${openCharacter}${label}${closeCharacter}`;
+    const normalizedLabel = normalizeFlowchartLabel(label);
+    sanitized += isAlreadyQuotedFlowchartLabel(label) || requiresQuotedFlowchartLabel(normalizedLabel)
+      ? quoteLabel(normalizedLabel)
+      : `${openCharacter}${normalizedLabel}${closeCharacter}`;
     index = cursor - 1;
   }
 
