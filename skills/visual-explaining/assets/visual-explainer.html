@@ -214,12 +214,6 @@
         line-height: 1.5;
       }
 
-      .content-block--diagram svg .node,
-      .content-block--diagram svg .node foreignObject,
-      .content-block--diagram svg .node .label {
-        overflow: visible;
-      }
-
       .content-block--diagram {
         border-radius: 18px;
         padding: 20px;
@@ -344,13 +338,88 @@
         },
         flowchart: {
           curve: "basis",
-          htmlLabels: true,
+          htmlLabels: false,
           padding: 20,
           nodeSpacing: 50,
           rankSpacing: 60,
           useMaxWidth: false,
         },
       });
+
+      const MULTILINE_LABEL_LINE_GAP = 1.35;
+      const MULTILINE_LABEL_PADDING = 18;
+      const SVG_VIEWBOX_PADDING = 24;
+
+      const expandRectAroundText = (rect, label) => {
+        const rectBox = rect.getBBox();
+        const labelBox = label.getBBox();
+        const nextWidth = Math.max(rectBox.width, labelBox.width + MULTILINE_LABEL_PADDING * 2);
+        const nextHeight = Math.max(rectBox.height, labelBox.height + MULTILINE_LABEL_PADDING * 2);
+
+        if (nextWidth > rectBox.width) {
+          const centerX = rectBox.x + rectBox.width / 2;
+          rect.setAttribute("width", String(nextWidth));
+          rect.setAttribute("x", String(centerX - nextWidth / 2));
+        }
+
+        if (nextHeight > rectBox.height) {
+          const centerY = rectBox.y + rectBox.height / 2;
+          rect.setAttribute("height", String(nextHeight));
+          rect.setAttribute("y", String(centerY - nextHeight / 2));
+        }
+      };
+
+      const centerLabelInShape = (node, shape, label) => {
+        const shapeBox = shape.getBBox();
+        const labelBox = label.getBBox();
+        const deltaX = shapeBox.x + shapeBox.width / 2 - (labelBox.x + labelBox.width / 2);
+        const deltaY = shapeBox.y + shapeBox.height / 2 - (labelBox.y + labelBox.height / 2);
+
+        if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+          return;
+        }
+
+        label.setAttribute("transform", `translate(${deltaX}, ${deltaY})`);
+      };
+
+      const spaceMultiLineLabels = (host) => {
+        host.querySelectorAll("svg .node").forEach((node) => {
+          const text = node.querySelector("text");
+          const label = node.querySelector(".label") || text;
+          const lines = Array.from(text?.querySelectorAll("tspan") || []);
+
+          if (lines.length < 2) {
+            return;
+          }
+
+          lines.slice(1).forEach((line) => {
+            line.setAttribute("dy", `${MULTILINE_LABEL_LINE_GAP}em`);
+          });
+
+          const rect = node.querySelector("rect");
+          if (rect) {
+            expandRectAroundText(rect, label);
+            centerLabelInShape(node, rect, label);
+          }
+        });
+      };
+
+      const refreshSvgViewBox = (host) => {
+        const svg = host.querySelector("svg");
+        const graph = svg?.querySelector("g");
+
+        if (!svg || !graph) {
+          return;
+        }
+
+        const graphBox = graph.getBBox();
+        const minX = graphBox.x - SVG_VIEWBOX_PADDING;
+        const minY = graphBox.y - SVG_VIEWBOX_PADDING;
+        const width = graphBox.width + SVG_VIEWBOX_PADDING * 2;
+        const height = graphBox.height + SVG_VIEWBOX_PADDING * 2;
+
+        svg.setAttribute("viewBox", `${minX} ${minY} ${width} ${height}`);
+      };
 
       const blocks = Array.from(document.querySelectorAll("[data-mermaid-source]"));
       const renders = blocks.map(async (block, index) => {
@@ -359,6 +428,8 @@
         const diagramId = `visual-explainer-${index}`;
         const { svg } = await mermaid.render(diagramId, source);
         host.innerHTML = svg;
+        spaceMultiLineLabels(host);
+        refreshSvgViewBox(host);
       });
 
       Promise.all(renders).catch((error) => {

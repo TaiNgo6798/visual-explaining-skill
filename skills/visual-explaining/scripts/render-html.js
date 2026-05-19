@@ -123,6 +123,11 @@ function quoteFlowchartLabel(label) {
   return `["${escaped}"]`;
 }
 
+function quoteFlowchartDecisionLabel(label) {
+  const escaped = label.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return `{"${escaped}"}`;
+}
+
 function isAlreadyQuotedFlowchartLabel(label) {
   const trimmed = label.trim();
   return trimmed.startsWith('"') && trimmed.endsWith('"');
@@ -138,12 +143,12 @@ function requiresQuotedFlowchartLabel(label) {
   return /[^A-Za-z0-9_.\-\s]/.test(label);
 }
 
-function sanitizeFlowchartLabels(source) {
+function sanitizeDelimitedFlowchartLabels(source, openCharacter, closeCharacter, quoteLabel) {
   let sanitized = '';
 
   for (let index = 0; index < source.length; index += 1) {
     const character = source[index];
-    if (character !== '[') {
+    if (character !== openCharacter) {
       sanitized += character;
       continue;
     }
@@ -152,9 +157,9 @@ function sanitizeFlowchartLabels(source) {
     let cursor = index + 1;
 
     while (cursor < source.length && source[cursor] !== '\n' && depth > 0) {
-      if (source[cursor] === '[') {
+      if (source[cursor] === openCharacter) {
         depth += 1;
-      } else if (source[cursor] === ']') {
+      } else if (source[cursor] === closeCharacter) {
         depth -= 1;
       }
 
@@ -167,11 +172,19 @@ function sanitizeFlowchartLabels(source) {
     }
 
     const label = source.slice(index + 1, cursor - 1);
-    sanitized += requiresQuotedFlowchartLabel(label) ? quoteFlowchartLabel(label) : `[${label}]`;
+    sanitized += requiresQuotedFlowchartLabel(label) ? quoteLabel(label) : `${openCharacter}${label}${closeCharacter}`;
     index = cursor - 1;
   }
 
   return sanitized;
+}
+
+function sanitizeFlowchartLabels(source) {
+  return sanitizeDelimitedFlowchartLabels(source, '[', ']', quoteFlowchartLabel);
+}
+
+function sanitizeFlowchartDecisionLabels(source) {
+  return sanitizeDelimitedFlowchartLabels(source, '{', '}', quoteFlowchartDecisionLabel);
 }
 
 function normalizeEdgeLabel(label) {
@@ -196,7 +209,7 @@ function sanitizeFlowchartEdgeLabels(source) {
 function sanitizeMermaidSource(source) {
   const trimmed = String(source || '').trim();
   if (/^(flowchart|graph)\b/m.test(trimmed)) {
-    return sanitizeFlowchartEdgeLabels(sanitizeFlowchartLabels(trimmed));
+    return sanitizeFlowchartEdgeLabels(sanitizeFlowchartLabels(sanitizeFlowchartDecisionLabels(trimmed)));
   }
 
   return trimmed;

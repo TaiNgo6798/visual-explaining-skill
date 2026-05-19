@@ -139,6 +139,8 @@ Mermaid label safety:
 - Do not put raw double quotes inside quoted node, edge, or subgraph labels.
 - Avoid labels like `Table["... "CLUSTERING DESC createdAt" ..."]`; Mermaid may parse the inner quote as a new string token near `end`.
 - Prefer `Table["... CLUSTERING DESC createdAt"]`, `Table["... 'CLUSTERING DESC createdAt'"]`, or split long details with `<br/>`.
+- Quote decision labels that contain bracket notation or punctuation, for example `Gate{"Device AND userFeatures[type]?"}` instead of `Gate{Device AND userFeatures[type]?}`.
+- Put multi-line flowchart node text in quoted labels, for example `GroupA["Group A\nisDisabledField"]`, so Mermaid can size the node around the text.
 - If the browser shows a Mermaid parse error, simplify the reported line's label first: remove nested quotes, brackets, and punctuation before changing diagram structure.
 
 ### Step 6: Generate the HTML Artifact

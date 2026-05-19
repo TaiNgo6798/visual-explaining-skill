@@ -50,6 +50,15 @@ test('sanitizeMermaidSource quotes labels with nested brackets', () => {
   );
 });
 
+test('sanitizeMermaidSource quotes decision labels with bracket notation', () => {
+  const source = 'flowchart TD\n  c3{Device AND userFeatures[type]?} -->|yes| c4';
+
+  assert.equal(
+    sanitizeMermaidSource(source),
+    'flowchart TD\n  c3{"Device AND userFeatures[type]?"} -->|yes| c4',
+  );
+});
+
 test('sanitizeMermaidSource quotes punctuation-heavy labels inside subgraphs', () => {
   const source = [
     'flowchart LR',
@@ -232,6 +241,49 @@ test('renderVisualExplainerHtml uses high-resolution PNG export settings', () =>
   assert.match(html, /const MAX_EXPORT_CANVAS_AREA = 268435456;/);
   assert.match(html, /pixelRatio: getExportPixelRatio\(node\)/);
   assert.doesNotMatch(html, /pixelRatio: 2/);
+});
+
+test('renderVisualExplainerHtml configures Mermaid labels to stay inside nodes', () => {
+  const html = renderVisualExplainerHtml({
+    title: 'Contained Labels',
+    sections: [
+      {
+        heading: 'Flow',
+        blocks: [
+          {
+            type: 'mermaid',
+            mermaid: 'flowchart TD\n  A[Group A\\nisDisabledField] --> B[guard fires: true\\ndisabled = true]',
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.match(html, /htmlLabels: false/);
+  assert.doesNotMatch(html, /svg \.node foreignObject/);
+});
+
+test('renderVisualExplainerHtml increases Mermaid multi-line label spacing', () => {
+  const html = renderVisualExplainerHtml({
+    title: 'Spaced Labels',
+    sections: [
+      {
+        heading: 'Flow',
+        blocks: [
+          {
+            type: 'mermaid',
+            mermaid: 'flowchart TD\n  A[SMALL plan<br/>allocation = 0<br/>noFreeInvoice = true]',
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.match(html, /const MULTILINE_LABEL_LINE_GAP = 1\.35;/);
+  assert.match(html, /const MULTILINE_LABEL_PADDING = 18;/);
+  assert.match(html, /centerLabelInShape\(node, rect, label\);/);
+  assert.match(html, /spaceMultiLineLabels\(host\);/);
+  assert.match(html, /refreshSvgViewBox\(host\);/);
 });
 
 test('readConfiguredExportDir returns null when config file is missing', () => {
