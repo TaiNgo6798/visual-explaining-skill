@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{PAGE_TITLE}}</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f0e8;
+        --panel: rgba(255, 252, 247, 0.92);
+        --panel-strong: #fffaf2;
+        --ink: #1c1812;
+        --muted: #6c6051;
+        --line: rgba(48, 35, 21, 0.14);
+        --accent: #1f6f78;
+        --accent-soft: rgba(31, 111, 120, 0.12);
+        --shadow: 0 24px 80px rgba(61, 46, 31, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(196, 167, 125, 0.28), transparent 34%),
+          radial-gradient(circle at right center, rgba(31, 111, 120, 0.16), transparent 28%),
+          linear-gradient(180deg, #f7f2ea 0%, var(--bg) 100%);
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 40px auto 64px;
+      }
+
+      .shell {
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: linear-gradient(180deg, rgba(255, 251, 245, 0.96), rgba(248, 241, 231, 0.9));
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+      }
+
+      header {
+        padding: 8px 4px 28px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .header-row,
+      .section-heading {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .export-actions {
+        flex: 0 0 auto;
+      }
+
+      .export-button {
+        appearance: none;
+        border: 1px solid rgba(31, 111, 120, 0.28);
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: rgba(255, 255, 255, 0.68);
+        color: #153e44;
+        cursor: pointer;
+        font: 700 12px/1.1 "Helvetica Neue", Arial, sans-serif;
+      }
+
+      .export-button:hover {
+        background: rgba(31, 111, 120, 0.1);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        margin: 0 0 14px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font: 600 12px/1.1 "Helvetica Neue", Arial, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2.3rem, 5vw, 4.4rem);
+        line-height: 0.96;
+        letter-spacing: -0.04em;
+      }
+
+      .summary {
+        max-width: 760px;
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 1.08rem;
+        line-height: 1.72;
+      }
+
+      .pairs {
+        display: grid;
+        gap: 28px;
+        margin-top: 28px;
+      }
+
+      .pair {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: linear-gradient(180deg, var(--panel) 0%, var(--panel-strong) 100%);
+      }
+
+      .text-pane {
+        padding: 24px;
+      }
+
+      .section-label {
+        margin: 0 0 10px;
+        color: var(--accent);
+        font: 600 12px/1.1 "Helvetica Neue", Arial, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: clamp(1.6rem, 3vw, 2.35rem);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+      }
+
+      .body {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+        color: #2e261d;
+        font-size: 1.02rem;
+        line-height: 1.78;
+      }
+
+      .body p {
+        margin: 0;
+      }
+
+      .body code {
+        padding: 0.16em 0.42em;
+        border: 1px solid rgba(31, 111, 120, 0.18);
+        border-radius: 0.45rem;
+        background: rgba(31, 111, 120, 0.08);
+        color: #153e44;
+        font: 0.92em/1.35 "SFMono-Regular", Menlo, Consolas, monospace;
+      }
+
+      .body ul {
+        margin: 0;
+        padding-left: 22px;
+      }
+
+      .body li + li {
+        margin-top: 8px;
+      }
+
+      .content-block {
+        margin-top: 16px;
+      }
+
+      .content-block:first-child {
+        margin-top: 0;
+      }
+
+      .content-block--list ul,
+      .content-block--files ul {
+        margin: 0;
+      }
+
+      .content-block--callout {
+        padding: 16px;
+        border: 1px solid rgba(31, 111, 120, 0.2);
+        border-radius: 14px;
+        background: rgba(31, 111, 120, 0.08);
+      }
+
+      .content-block--callout h3 {
+        margin: 0 0 8px;
+        color: #153e44;
+        font: 700 1rem/1.3 "Helvetica Neue", Arial, sans-serif;
+      }
+
+      .content-block--files li {
+        padding: 4px 0;
+      }
+
+      .file-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .file-item code {
+        align-self: flex-start;
+      }
+
+      .file-note {
+        font-size: 0.95rem;
+        color: #4d6070;
+        line-height: 1.5;
+      }
+
+      .content-block--diagram svg .node,
+      .content-block--diagram svg .node foreignObject,
+      .content-block--diagram svg .node .label {
+        overflow: visible;
+      }
+
+      .content-block--diagram {
+        border-radius: 18px;
+        padding: 20px;
+        background:
+          linear-gradient(180deg, rgba(252, 248, 241, 0.96), rgba(244, 235, 223, 0.82)),
+          repeating-linear-gradient(
+            135deg,
+            rgba(31, 111, 120, 0.05),
+            rgba(31, 111, 120, 0.05) 10px,
+            transparent 10px,
+            transparent 20px
+        );
+      }
+
+      .diagram-frame {
+        min-height: 240px;
+        padding: 20px;
+        border: 1px solid rgba(31, 111, 120, 0.18);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.74);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        overflow-x: auto;
+      }
+
+      .diagram-frame svg {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
+      }
+
+      .mermaid-source {
+        display: none;
+        white-space: pre-wrap;
+      }
+
+      footer {
+        margin-top: 18px;
+        color: var(--muted);
+        font: 500 0.92rem/1.6 "Helvetica Neue", Arial, sans-serif;
+      }
+
+      @media (max-width: 720px) {
+        main {
+          width: min(100% - 20px, 1120px);
+          margin: 20px auto 28px;
+        }
+
+        .shell {
+          padding: 18px;
+          border-radius: 22px;
+        }
+
+        .text-pane,
+        .content-block--diagram {
+          padding: 16px;
+        }
+
+        .header-row,
+        .section-heading {
+          display: grid;
+        }
+
+        .export-actions {
+          margin-top: 14px;
+        }
+
+        .content-block--files li {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+
+        .diagram-frame {
+          min-height: 180px;
+          padding: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="shell" data-export-page-target>
+        <header>
+          <div class="header-row">
+            <div>
+              <p class="eyebrow">Visual Explainer</p>
+              <h1>{{TITLE}}</h1>
+              {{SUMMARY}}
+            </div>
+            <div class="export-actions" data-export-control>
+              <button class="export-button" type="button" data-export-page>Save page PNG</button>
+            </div>
+          </div>
+        </header>
+
+        <section class="pairs">
+          {{PAIRS}}
+        </section>
+
+        <footer>
+          Mermaid is rendered in-browser from the embedded source in this file.
+        </footer>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+    <script>
+      const { toPng } = htmlToImage;
+
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "base",
+        securityLevel: "loose",
+        themeVariables: {
+          primaryColor: "#f7f0e6",
+          primaryTextColor: "#1c1812",
+          primaryBorderColor: "#1f6f78",
+          lineColor: "#4d6070",
+          tertiaryColor: "#f2e5d3",
+          fontFamily: "Georgia, Times New Roman, serif",
+        },
+        flowchart: {
+          curve: "basis",
+          htmlLabels: true,
+          padding: 20,
+          nodeSpacing: 50,
+          rankSpacing: 60,
+          useMaxWidth: false,
+        },
+      });
+
+      const blocks = Array.from(document.querySelectorAll("[data-mermaid-source]"));
+      const renders = blocks.map(async (block, index) => {
+        const source = block.textContent.trim();
+        const host = block.closest(".content-block--diagram").querySelector("[data-diagram-output]");
+        const diagramId = `visual-explainer-${index}`;
+        const { svg } = await mermaid.render(diagramId, source);
+        host.innerHTML = svg;
+      });
+
+      Promise.all(renders).catch((error) => {
+        console.error("Failed to render Mermaid diagrams", error);
+        const message = error instanceof Error ? error.message : String(error);
+        document.querySelectorAll("[data-diagram-output]").forEach((host) => {
+          host.innerHTML = `<pre>${message}</pre>`;
+        });
+      });
+
+      const slugify = (value) =>
+        String(value || "visual-explainer")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 80) || "visual-explainer";
+
+      const downloadPng = (dataUrl, filename) => {
+        const link = document.createElement("a");
+        link.download = filename;
+        link.href = dataUrl;
+        link.click();
+      };
+
+      const exportFilter = (node) => !node.closest?.("[data-export-control]");
+      const MAX_EXPORT_PIXEL_RATIO = 4;
+      const MAX_EXPORT_CANVAS_SIDE = 16384;
+      const MAX_EXPORT_CANVAS_AREA = 268435456;
+
+      const getExportPixelRatio = (node) => {
+        const width = Math.max(1, node.scrollWidth || node.getBoundingClientRect().width);
+        const height = Math.max(1, node.scrollHeight || node.getBoundingClientRect().height);
+        const sideRatio = Math.min(MAX_EXPORT_CANVAS_SIDE / width, MAX_EXPORT_CANVAS_SIDE / height);
+        const areaRatio = Math.sqrt(MAX_EXPORT_CANVAS_AREA / (width * height));
+
+        return Math.max(1, Math.min(MAX_EXPORT_PIXEL_RATIO, sideRatio, areaRatio));
+      };
+
+      const exportNode = async (node, filename) => {
+        const dataUrl = await toPng(node, {
+          cacheBust: true,
+          pixelRatio: getExportPixelRatio(node),
+          backgroundColor: "#f5f0e8",
+          filter: exportFilter,
+        });
+        downloadPng(dataUrl, filename);
+      };
+
+      const pageTitle = slugify(document.querySelector("h1")?.textContent);
+      document.querySelector("[data-export-page]")?.addEventListener("click", (event) => {
+        exportNode(document.querySelector("[data-export-page-target]"), `${pageTitle}.png`);
+      });
+
+      document.querySelectorAll("[data-export-section-button]").forEach((button, index) => {
+        button.addEventListener("click", (event) => {
+          const section = event.currentTarget.closest("[data-export-section]");
+          const sectionTitle = slugify(section?.dataset.exportTitle || `section-${index + 1}`);
+          exportNode(section, `${pageTitle}-${sectionTitle}.png`);
+        });
+      });
+    </script>
+  </body>
+</html>
