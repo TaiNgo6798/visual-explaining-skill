@@ -309,6 +309,7 @@
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dagre@0.7.4/dist/dagre.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
     <script>
@@ -465,8 +466,6 @@
                   'background-color': '#fffaf2',
                   'label': 'data(label)',
                   'shape': 'data(shape)',
-                  'width': 'label',
-                  'height': 'label',
                   'padding': '14px',
                   'border-width': 1.5,
                   'border-color': '#1f6f78',
@@ -477,6 +476,21 @@
                   'text-halign': 'center',
                   'text-wrap': 'wrap',
                   'text-max-width': '220px'
+                }
+              },
+              {
+                selector: 'node:childless',
+                style: {
+                  'width': (node) => {
+                    const label = node.data('label') || '';
+                    const longestLine = label.split('\n').reduce((max, line) => Math.max(max, line.length), 0);
+                    return Math.max(80, longestLine * 7.5 + 28);
+                  },
+                  'height': (node) => {
+                    const label = node.data('label') || '';
+                    const lineCount = label.split('\n').length;
+                    return Math.max(40, lineCount * 16 + 20);
+                  }
                 }
               },
               {
