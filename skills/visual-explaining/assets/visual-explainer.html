@@ -239,6 +239,44 @@
         overflow: hidden;
       }
 
+      .diagram-toolbar {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        display: flex;
+        gap: 6px;
+        z-index: 10;
+      }
+
+      .toolbar-button {
+        appearance: none;
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(31, 111, 120, 0.22);
+        border-radius: 8px;
+        background: rgba(255, 252, 247, 0.88);
+        color: #1f6f78;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font: 700 13px sans-serif;
+        box-shadow: 0 2px 8px rgba(31, 111, 120, 0.08);
+        backdrop-filter: blur(4px);
+        transition: all 0.15s ease;
+      }
+
+      .toolbar-button:hover {
+        background: #fffaf2;
+        border-color: #1f6f78;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(31, 111, 120, 0.14);
+      }
+
+      .toolbar-button:active {
+        transform: translateY(0);
+      }
+
       footer {
         margin-top: 18px;
         color: var(--muted);
@@ -545,6 +583,36 @@
               padding: 20
             }
           });
+
+          const toolbar = host.querySelector('.diagram-toolbar');
+          if (toolbar) {
+            toolbar.querySelector('[data-zoom-in]').addEventListener('click', () => {
+              cy.zoom({
+                level: cy.zoom() * 1.25,
+                position: { x: cy.width() / 2, y: cy.height() / 2 }
+              });
+            });
+            toolbar.querySelector('[data-zoom-out]').addEventListener('click', () => {
+              cy.zoom({
+                level: cy.zoom() / 1.25,
+                position: { x: cy.width() / 2, y: cy.height() / 2 }
+              });
+            });
+            toolbar.querySelector('[data-fit]').addEventListener('click', () => {
+              cy.fit(20);
+            });
+            toolbar.querySelector('[data-reset]').addEventListener('click', () => {
+              cy.layout({
+                name: 'dagre',
+                rankDir: direction,
+                nodeSep: 60,
+                edgeSep: 40,
+                rankSep: 60,
+                fit: true,
+                padding: 20
+              }).run();
+            });
+          }
         } catch (error) {
           console.error("Failed to render Cytoscape diagram", error);
           host.innerHTML = `<pre style="padding: 20px; color: red;">Failed to render diagram: ${error.message}</pre>`;
