@@ -230,24 +230,13 @@
 
       .diagram-frame {
         min-height: 240px;
-        padding: 20px;
+        height: 380px;
         border: 1px solid rgba(31, 111, 120, 0.18);
         border-radius: 18px;
         background: rgba(255, 255, 255, 0.74);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-        overflow-x: auto;
-      }
-
-      .diagram-frame svg {
-        display: block;
-        max-width: 100%;
-        height: auto;
-        margin: 0 auto;
-      }
-
-      .mermaid-source {
-        display: none;
-        white-space: pre-wrap;
+        position: relative;
+        overflow: hidden;
       }
 
       footer {
@@ -314,365 +303,238 @@
         </section>
 
         <footer>
-          Mermaid is rendered in-browser from the embedded source in this file.
+          Diagrams are rendered in-browser using Cytoscape.js and the Dagre layout extension.
         </footer>
       </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
     <script>
       const { toPng } = htmlToImage;
 
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: "base",
-        securityLevel: "loose",
-        themeVariables: {
-          primaryColor: "#f7f0e6",
-          primaryTextColor: "#1c1812",
-          primaryBorderColor: "#1f6f78",
-          lineColor: "#4d6070",
-          tertiaryColor: "#f2e5d3",
-          fontFamily: "Georgia, Times New Roman, serif",
-        },
-        flowchart: {
-          curve: "cardinal",
-          htmlLabels: false,
-          padding: 20,
-          nodeSpacing: 50,
-          rankSpacing: 60,
-          useMaxWidth: false,
-        },
-      });
+      function parseMermaid(source) {
+        const lines = source.split('\n');
+        const elements = [];
+        const nodesMap = new Map();
+        let currentParentId = null;
+        let direction = 'TB';
 
-      const MULTILINE_LABEL_LINE_GAP = 1.35;
-      const MULTILINE_LABEL_PADDING = 18;
-      const SVG_VIEWBOX_PADDING = 24;
+        function registerNode(rawId, bracketOpen, label, bracketClose) {
+          const id = rawId.trim();
+          if (!id) return null;
 
-      const expandRectAroundText = (rect, label) => {
-        const rectBox = rect.getBBox();
-        const labelBox = label.getBBox();
-        const nextWidth = Math.max(rectBox.width, labelBox.width + MULTILINE_LABEL_PADDING * 2);
-        const nextHeight = Math.max(rectBox.height, labelBox.height + MULTILINE_LABEL_PADDING * 2);
-
-        if (nextWidth > rectBox.width) {
-          const centerX = rectBox.x + rectBox.width / 2;
-          rect.setAttribute("width", String(nextWidth));
-          rect.setAttribute("x", String(centerX - nextWidth / 2));
-        }
-
-        if (nextHeight > rectBox.height) {
-          const centerY = rectBox.y + rectBox.height / 2;
-          rect.setAttribute("height", String(nextHeight));
-          rect.setAttribute("y", String(centerY - nextHeight / 2));
-        }
-      };
-
-      const centerLabelInShape = (node, shape, label) => {
-        const shapeBox = shape.getBBox();
-        const labelBox = label.getBBox();
-        const deltaX = shapeBox.x + shapeBox.width / 2 - (labelBox.x + labelBox.width / 2);
-        const deltaY = shapeBox.y + shapeBox.height / 2 - (labelBox.y + labelBox.height / 2);
-
-        if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
-          return;
-        }
-
-        label.setAttribute("transform", `translate(${deltaX}, ${deltaY})`);
-      };
-
-      const spaceMultiLineLabels = (host) => {
-        host.querySelectorAll("svg .node").forEach((node) => {
-          const text = node.querySelector("text");
-          const label = node.querySelector(".label") || text;
-          const lines = Array.from(text?.querySelectorAll("tspan") || []);
-
-          if (lines.length < 2) {
-            return;
+          let shape = 'round-rectangle';
+          if (bracketOpen) {
+            if (bracketOpen.includes('{')) shape = 'diamond';
+            else if (bracketOpen.includes('(') && bracketOpen.includes('[')) shape = 'round-rectangle';
+            else if (bracketOpen.includes('[') && bracketOpen.includes('(')) shape = 'barrel';
+            else if (bracketOpen.includes('(')) shape = bracketOpen.length > 1 ? 'ellipse' : 'round-rectangle';
+            else if (bracketOpen.includes('[')) shape = 'rectangle';
           }
 
-          lines.slice(1).forEach((line) => {
-            line.setAttribute("dy", `${MULTILINE_LABEL_LINE_GAP}em`);
-          });
+          let finalLabel = label ? label.trim() : id;
+          finalLabel = finalLabel.replace(/<br\s*\/?>/gi, '\n');
 
-          const rect = node.querySelector("rect");
-          if (rect) {
-            expandRectAroundText(rect, label);
-            centerLabelInShape(node, rect, label);
+          // If it was originally a cylinder shape and label was quoted or sanitized
+          if (finalLabel.startsWith('(') && finalLabel.endsWith(')') && shape === 'rectangle') {
+            finalLabel = finalLabel.slice(1, -1).trim();
+            shape = 'barrel';
           }
-        });
-      };
 
-      const refreshSvgViewBox = (host) => {
-        const svg = host.querySelector("svg");
-        const graph = svg?.querySelector("g");
-
-        if (!svg || !graph) {
-          return;
-        }
-
-        const graphBox = graph.getBBox();
-        const minX = graphBox.x - SVG_VIEWBOX_PADDING;
-        const minY = graphBox.y - SVG_VIEWBOX_PADDING;
-        const width = graphBox.width + SVG_VIEWBOX_PADDING * 2;
-        const height = graphBox.height + SVG_VIEWBOX_PADDING * 2;
-
-        svg.setAttribute("viewBox", `${minX} ${minY} ${width} ${height}`);
-      };
-
-      const getBoxInGraphSpace = (shape, graph) => {
-        const box = shape.getBBox();
-        const graphMatrix = graph.getScreenCTM();
-        const shapeMatrix = shape.getScreenCTM();
-
-        if (!graphMatrix || !shapeMatrix) {
-          return null;
-        }
-
-        const matrix = graphMatrix.inverse().multiply(shapeMatrix);
-        const points = [
-          new DOMPoint(box.x, box.y),
-          new DOMPoint(box.x + box.width, box.y),
-          new DOMPoint(box.x + box.width, box.y + box.height),
-          new DOMPoint(box.x, box.y + box.height),
-        ].map((point) => point.matrixTransform(matrix));
-        const xValues = points.map((point) => point.x);
-        const yValues = points.map((point) => point.y);
-
-        return {
-          x: Math.min(...xValues),
-          y: Math.min(...yValues),
-          width: Math.max(...xValues) - Math.min(...xValues),
-          height: Math.max(...yValues) - Math.min(...yValues),
-        };
-      };
-
-      const pointIsInsideBox = (point, box) =>
-        point.x >= box.x &&
-        point.x <= box.x + box.width &&
-        point.y >= box.y &&
-        point.y <= box.y + box.height;
-
-      const getLineBoxIntersection = (outsidePoint, insidePoint, box) => {
-        const deltaX = insidePoint.x - outsidePoint.x;
-        const deltaY = insidePoint.y - outsidePoint.y;
-        const candidates = [];
-
-        if (deltaX !== 0) {
-          [box.x, box.x + box.width].forEach((x) => {
-            const time = (x - outsidePoint.x) / deltaX;
-            const y = outsidePoint.y + deltaY * time;
-            if (time >= 0 && time <= 1 && y >= box.y && y <= box.y + box.height) {
-              candidates.push({ x, y, time });
+          if (!nodesMap.has(id)) {
+            const nodeObj = {
+              data: {
+                id,
+                label: finalLabel,
+                shape,
+                parent: currentParentId || undefined
+              }
+            };
+            nodesMap.set(id, nodeObj);
+            elements.push(nodeObj);
+          } else {
+            const existing = nodesMap.get(id);
+            if (label) {
+              existing.data.label = finalLabel;
+              existing.data.shape = shape;
             }
-          });
-        }
-
-        if (deltaY !== 0) {
-          [box.y, box.y + box.height].forEach((y) => {
-            const time = (y - outsidePoint.y) / deltaY;
-            const x = outsidePoint.x + deltaX * time;
-            if (time >= 0 && time <= 1 && x >= box.x && x <= box.x + box.width) {
-              candidates.push({ x, y, time });
+            if (currentParentId && !existing.data.parent) {
+              existing.data.parent = currentParentId;
             }
-          });
+          }
+          return id;
         }
 
-        return candidates.sort((a, b) => a.time - b.time)[0] || insidePoint;
-      };
+        function parseNodeToken(token) {
+          const nodeMatch = token.match(/^([a-zA-Z0-9_-]+)(?:\s*([([{>{]+)(?:"([^"]+)"|'([^']+)'|([^)\]>}]+))([)\]>}]+))?$/);
+          if (!nodeMatch) {
+            const id = token.trim();
+            registerNode(id);
+            return id;
+          }
+          const [_, id, bracketOpen, labelQ, labelS, labelU] = nodeMatch;
+          const label = labelQ || labelS || labelU;
+          registerNode(id, bracketOpen, label);
+          return id;
+        }
 
-      const getPathPoints = (path) => {
-        const tokens = path.getAttribute("d")?.match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g) || [];
-        const points = [];
-        let command = "";
+        for (let line of lines) {
+          line = line.trim();
+          if (!line || line.startsWith('%%')) continue;
 
-        for (let index = 0; index < tokens.length; index += 1) {
-          if (/^[a-zA-Z]$/.test(tokens[index])) {
-            command = tokens[index].toUpperCase();
+          const headerMatch = line.match(/^(flowchart|graph)\s+(TD|TB|LR|RL|BT)/i);
+          if (headerMatch) {
+            direction = headerMatch[2].toUpperCase();
+            if (direction === 'TD') direction = 'TB';
             continue;
           }
 
-          if (["H", "V", "A"].includes(command)) {
-            return null;
+          const subgraphStartMatch = line.match(/^subgraph\s+([a-zA-Z0-9_-]+)(?:\s*(?:\[|"|\[")([^"\]]+)(?:"\]|\]|")?)?/i);
+          if (subgraphStartMatch) {
+            const subId = subgraphStartMatch[1];
+            const subLabel = subgraphStartMatch[2] || subId;
+            const subNode = {
+              data: {
+                id: subId,
+                label: subLabel,
+                shape: 'rectangle',
+                parent: currentParentId || undefined
+              }
+            };
+            nodesMap.set(subId, subNode);
+            elements.push(subNode);
+            currentParentId = subId;
+            continue;
           }
 
-          const xTokenIndex = index;
-          const yTokenIndex = index + 1;
-          const x = Number(tokens[xTokenIndex]);
-          const y = Number(tokens[yTokenIndex]);
-
-          if (!Number.isFinite(x) || !Number.isFinite(y)) {
-            return null;
+          if (line.toLowerCase() === 'end') {
+            currentParentId = null;
+            continue;
           }
 
-          points.push({ x, y, xTokenIndex, yTokenIndex });
-          index += 1;
-        }
+          const connectorMatch = line.match(/(--+>|---+|-\.-+>|==+>)(?:\|([^|]+)\|)?/);
+          if (connectorMatch) {
+            const connector = connectorMatch[1];
+            const edgeLabel = connectorMatch[2];
+            const splitIdx = line.indexOf(connectorMatch[0]);
+            const leftPart = line.substring(0, splitIdx).trim();
+            const rightPart = line.substring(splitIdx + connectorMatch[0].length).trim();
 
-        return { tokens, points };
-      };
+            const sourceId = parseNodeToken(leftPart);
+            const targetId = parseNodeToken(rightPart);
 
-      const movePathPoint = (pathData, point, nextPoint) => {
-        pathData.tokens[point.xTokenIndex] = String(Number(nextPoint.x.toFixed(2)));
-        pathData.tokens[point.yTokenIndex] = String(Number(nextPoint.y.toFixed(2)));
-      };
+            let lineStyle = 'solid';
+            let width = 1.5;
+            if (connector.includes('.')) lineStyle = 'dashed';
+            if (connector.includes('=')) width = 3;
 
-      const pointsMatch = (firstPoint, secondPoint) =>
-        Math.abs(firstPoint.x - secondPoint.x) < 0.01 &&
-        Math.abs(firstPoint.y - secondPoint.y) < 0.01;
-
-      const getCommandStartIndex = (tokens, point) => {
-        for (let index = point.xTokenIndex - 1; index >= 0; index -= 1) {
-          if (/^[a-zA-Z]$/.test(tokens[index])) {
-            return index;
+            elements.push({
+              data: {
+                id: `${sourceId}-${targetId}-${elements.length}`,
+                source: sourceId,
+                target: targetId,
+                label: edgeLabel ? edgeLabel.trim() : undefined,
+                lineStyle,
+                width
+              }
+            });
+          } else {
+            parseNodeToken(line);
           }
         }
 
-        return -1;
-      };
+        return { elements, direction };
+      }
 
-      const removeTrailingDuplicateLine = (pathData) => {
-        const points = pathData.points;
+      document.querySelectorAll("[data-mermaid-source]").forEach((host, index) => {
+        const source = host.dataset.mermaidSource;
+        try {
+          const { elements, direction } = parseMermaid(source);
 
-        if (points.length < 2) {
-          return;
+          cytoscape({
+            container: host,
+            elements: elements,
+            boxSelectionEnabled: false,
+            autoungrabify: false,
+            style: [
+              {
+                selector: 'node',
+                style: {
+                  'background-color': '#fffaf2',
+                  'label': 'data(label)',
+                  'shape': 'data(shape)',
+                  'width': 'label',
+                  'height': 'label',
+                  'padding': '14px',
+                  'border-width': 1.5,
+                  'border-color': '#1f6f78',
+                  'color': '#1c1812',
+                  'font-family': 'Georgia, Times New Roman, serif',
+                  'font-size': '13px',
+                  'text-valign': 'center',
+                  'text-halign': 'center',
+                  'text-wrap': 'wrap',
+                  'text-max-width': '220px'
+                }
+              },
+              {
+                selector: 'node:active',
+                style: {
+                  'border-color': '#153e44',
+                  'border-width': 2.5
+                }
+              },
+              {
+                selector: 'node:parent',
+                style: {
+                  'background-color': 'rgba(31, 111, 120, 0.04)',
+                  'border-style': 'dashed',
+                  'border-color': 'rgba(31, 111, 120, 0.3)',
+                  'text-valign': 'top',
+                  'text-halign': 'center',
+                  'padding': '18px',
+                  'font-weight': 'bold',
+                  'color': '#1f6f78'
+                }
+              },
+              {
+                selector: 'edge',
+                style: {
+                  'width': 'data(width)',
+                  'line-color': '#4d6070',
+                  'line-style': 'data(lineStyle)',
+                  'target-arrow-color': '#4d6070',
+                  'target-arrow-shape': 'triangle',
+                  'arrow-scale': 1.15,
+                  'curve-style': 'taxi',
+                  'taxi-direction': direction === 'TB' ? 'vertical' : 'horizontal',
+                  'label': 'data(label)',
+                  'font-family': 'Helvetica Neue, Arial, sans-serif',
+                  'font-size': '11px',
+                  'color': '#6c6051',
+                  'text-background-opacity': 0.85,
+                  'text-background-color': '#fffaf2',
+                  'text-background-padding': '4px',
+                  'text-background-shape': 'roundrectangle'
+                }
+              }
+            ],
+            layout: {
+              name: 'dagre',
+              rankDir: direction,
+              nodeSep: 60,
+              edgeSep: 40,
+              rankSep: 60,
+              fit: true,
+              padding: 20
+            }
+          });
+        } catch (error) {
+          console.error("Failed to render Cytoscape diagram", error);
+          host.innerHTML = `<pre style="padding: 20px; color: red;">Failed to render diagram: ${error.message}</pre>`;
         }
-
-        const lastPoint = points[points.length - 1];
-        const previousPoint = points[points.length - 2];
-        const commandStartIndex = getCommandStartIndex(pathData.tokens, lastPoint);
-
-        if (commandStartIndex < 0 || pathData.tokens[commandStartIndex].toUpperCase() !== "L") {
-          return;
-        }
-
-        if (pointsMatch(previousPoint, lastPoint)) {
-          pathData.tokens.splice(commandStartIndex, lastPoint.yTokenIndex - commandStartIndex + 1);
-        }
-      };
-
-      const trimInsideHeadToBoundary = (pathData, box) => {
-        const points = pathData.points;
-        let lastInsideIndex = 0;
-
-        while (
-          lastInsideIndex + 1 < points.length &&
-          pointIsInsideBox(points[lastInsideIndex + 1], box)
-        ) {
-          lastInsideIndex += 1;
-        }
-
-        const outsidePoint = points[lastInsideIndex + 1];
-
-        if (!outsidePoint) {
-          return false;
-        }
-
-        const boundaryPoint = getLineBoxIntersection(outsidePoint, points[lastInsideIndex], box);
-        points.slice(0, lastInsideIndex + 1).forEach((point) => {
-          movePathPoint(pathData, point, boundaryPoint);
-        });
-        return true;
-      };
-
-      const trimInsideTailToBoundary = (pathData, box) => {
-        const points = pathData.points;
-        let firstInsideIndex = points.length - 1;
-
-        while (
-          firstInsideIndex - 1 >= 0 &&
-          pointIsInsideBox(points[firstInsideIndex - 1], box)
-        ) {
-          firstInsideIndex -= 1;
-        }
-
-        const outsidePoint = points[firstInsideIndex - 1];
-
-        if (!outsidePoint) {
-          return false;
-        }
-
-        const boundaryPoint = getLineBoxIntersection(outsidePoint, points[firstInsideIndex], box);
-        points.slice(firstInsideIndex).forEach((point) => {
-          movePathPoint(pathData, point, boundaryPoint);
-        });
-        return true;
-      };
-
-      const trimPathStartToBox = (pathData, boxes) => {
-        const box = boxes.find((candidate) => pointIsInsideBox(pathData.points[0], candidate));
-        return box ? trimInsideHeadToBoundary(pathData, box) : false;
-      };
-
-      const trimPathEndToBox = (pathData, boxes) => {
-        const point = pathData.points[pathData.points.length - 1];
-        const box = boxes.find((candidate) => pointIsInsideBox(point, candidate));
-        return box ? trimInsideTailToBoundary(pathData, box) : false;
-      };
-
-      const trimEdgesToNodeBorders = (host) => {
-        const graph = host.querySelector("svg > g");
-
-        if (!graph) {
-          return;
-        }
-
-        const boxes = Array.from(graph.querySelectorAll(".node rect"))
-          .map((rect) => getBoxInGraphSpace(rect, graph))
-          .filter((box) => box && box.width > 0 && box.height > 0);
-
-        graph.querySelectorAll(".edgePaths path").forEach((path) => {
-          const pathData = getPathPoints(path);
-
-          if (!pathData || pathData.points.length < 2) {
-            return;
-          }
-
-          const didTrimStart = trimPathStartToBox(pathData, boxes);
-          const didTrimEnd = trimPathEndToBox(pathData, boxes);
-
-          if (didTrimStart || didTrimEnd) {
-            removeTrailingDuplicateLine(pathData);
-            path.setAttribute("d", pathData.tokens.join(" "));
-          }
-        });
-      };
-
-      const bringEdgesToFront = (host) => {
-        const graph = host.querySelector("svg > g");
-
-        if (!graph) {
-          return;
-        }
-
-        ["edgePaths", "edgeLabels"].forEach((className) => {
-          const group = graph.querySelector(`g.${className}`);
-          if (group) {
-            graph.appendChild(group);
-          }
-        });
-      };
-
-      const blocks = Array.from(document.querySelectorAll("[data-mermaid-source]"));
-      const renders = blocks.map(async (block, index) => {
-        const source = block.textContent.trim();
-        const host = block.closest(".content-block--diagram").querySelector("[data-diagram-output]");
-        const diagramId = `visual-explainer-${index}`;
-        const { svg } = await mermaid.render(diagramId, source);
-        host.innerHTML = svg;
-        spaceMultiLineLabels(host);
-        trimEdgesToNodeBorders(host);
-        bringEdgesToFront(host);
-        refreshSvgViewBox(host);
-      });
-
-      Promise.all(renders).catch((error) => {
-        console.error("Failed to render Mermaid diagrams", error);
-        const message = error instanceof Error ? error.message : String(error);
-        document.querySelectorAll("[data-diagram-output]").forEach((host) => {
-          host.innerHTML = `<pre>${message}</pre>`;
-        });
       });
 
       const slugify = (value) =>

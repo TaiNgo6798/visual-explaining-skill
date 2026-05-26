@@ -258,7 +258,7 @@ test('renderVisualExplainerHtml uses high-resolution PNG export settings', () =>
   assert.doesNotMatch(html, /pixelRatio: 2/);
 });
 
-test('renderVisualExplainerHtml configures Mermaid labels to stay inside nodes', () => {
+test('renderVisualExplainerHtml configures Cytoscape labels to stay inside nodes', () => {
   const html = renderVisualExplainerHtml({
     title: 'Contained Labels',
     sections: [
@@ -274,13 +274,13 @@ test('renderVisualExplainerHtml configures Mermaid labels to stay inside nodes',
     ],
   });
 
-  assert.match(html, /htmlLabels: false/);
-  assert.doesNotMatch(html, /svg \.node foreignObject/);
+  assert.match(html, /'text-wrap': 'wrap'/);
+  assert.match(html, /'text-max-width': '220px'/);
 });
 
-test('renderVisualExplainerHtml increases Mermaid multi-line label spacing', () => {
+test('renderVisualExplainerHtml configures Cytoscape font styling', () => {
   const html = renderVisualExplainerHtml({
-    title: 'Spaced Labels',
+    title: 'Styling Labels',
     sections: [
       {
         heading: 'Flow',
@@ -294,15 +294,12 @@ test('renderVisualExplainerHtml increases Mermaid multi-line label spacing', () 
     ],
   });
 
-  assert.match(html, /const MULTILINE_LABEL_LINE_GAP = 1\.35;/);
-  assert.match(html, /const MULTILINE_LABEL_PADDING = 18;/);
-  assert.match(html, /centerLabelInShape\(node, rect, label\);/);
-  assert.match(html, /spaceMultiLineLabels\(host\);/);
-  assert.match(html, /refreshSvgViewBox\(host\);/);
-  assert.match(html, /bringEdgesToFront\(host\);/);
+  assert.match(html, /'font-family': 'Georgia, Times New Roman, serif'/);
+  assert.match(html, /'font-size': '13px'/);
+  assert.match(html, /'padding': '14px'/);
 });
 
-test('renderVisualExplainerHtml trims Mermaid arrows to expanded node borders', () => {
+test('renderVisualExplainerHtml configures Cytoscape Dagre layout and arrow routing', () => {
   const html = renderVisualExplainerHtml({
     title: 'Arrow Bounds',
     sections: [
@@ -318,13 +315,9 @@ test('renderVisualExplainerHtml trims Mermaid arrows to expanded node borders', 
     ],
   });
 
-  assert.match(html, /const trimEdgesToNodeBorders = \(host\) => {/);
-  assert.match(html, /curve: "cardinal"/);
-  assert.match(html, /trimPathEndToBox\(pathData, boxes\)/);
-  assert.match(html, /trimInsideTailToBoundary\(pathData, box\)/);
-  assert.match(html, /removeTrailingDuplicateLine\(pathData\);/);
-  assert.match(html, /trimEdgesToNodeBorders\(host\);/);
-  assert.match(html, /bringEdgesToFront\(host\);\n\s*refreshSvgViewBox\(host\);/);
+  assert.match(html, /'target-arrow-shape': 'triangle'/);
+  assert.match(html, /'curve-style': 'taxi'/);
+  assert.match(html, /name: 'dagre'/);
 });
 
 test('readConfiguredExportDir returns null when config file is missing', () => {
