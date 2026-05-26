@@ -239,6 +239,44 @@
         overflow: hidden;
       }
 
+      .diagram-toolbar {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        display: flex;
+        gap: 6px;
+        z-index: 10;
+      }
+
+      .toolbar-button {
+        appearance: none;
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(31, 111, 120, 0.22);
+        border-radius: 8px;
+        background: rgba(255, 252, 247, 0.88);
+        color: #1f6f78;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font: 700 13px sans-serif;
+        box-shadow: 0 2px 8px rgba(31, 111, 120, 0.08);
+        backdrop-filter: blur(4px);
+        transition: all 0.15s ease;
+      }
+
+      .toolbar-button:hover {
+        background: #fffaf2;
+        border-color: #1f6f78;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(31, 111, 120, 0.14);
+      }
+
+      .toolbar-button:active {
+        transform: translateY(0);
+      }
+
       footer {
         margin-top: 18px;
         color: var(--muted);
@@ -312,7 +350,14 @@
 <p>A client sends the user to the authorization server. After the user signs in and consents, the server returns an authorization code to the client redirect URI. The client exchanges that code, plus its PKCE verifier, for tokens.</p>
 </div>
 <div class="content-block content-block--diagram">
-  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart TD&#10;  User --&gt;|Start sign in| Client[&quot;Client app&quot;]&#10;  Client --&gt;|Authorization request + challenge| Auth[&quot;Authorization server&quot;]&#10;  Auth --&gt;|Authenticate and consent| User&#10;  Auth --&gt;|Redirect with authorization code| Client&#10;  Client --&gt;|Exchange code + verifier| Auth&#10;  Auth --&gt;|Access token + optional refresh| Client&#10;  Client --&gt;|Request with access token| API[&quot;Resource server&quot;]&#10;  API --&gt;|Protected resource| Client"></div>
+  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart TD&#10;  User --&gt;|Start sign in| Client[&quot;Client app&quot;]&#10;  Client --&gt;|Authorization request + challenge| Auth[&quot;Authorization server&quot;]&#10;  Auth --&gt;|Authenticate and consent| User&#10;  Auth --&gt;|Redirect with authorization code| Client&#10;  Client --&gt;|Exchange code + verifier| Auth&#10;  Auth --&gt;|Access token + optional refresh| Client&#10;  Client --&gt;|Request with access token| API[&quot;Resource server&quot;]&#10;  API --&gt;|Protected resource| Client">
+    <div class="diagram-toolbar" data-export-control>
+      <button class="toolbar-button" type="button" data-zoom-in title="Zoom In">+</button>
+      <button class="toolbar-button" type="button" data-zoom-out title="Zoom Out">-</button>
+      <button class="toolbar-button" type="button" data-fit title="Fit to Screen">🎯</button>
+      <button class="toolbar-button" type="button" data-reset title="Reset Layout">🔄</button>
+    </div>
+  </div>
 </div></div>
   </section>
 </article>
@@ -333,7 +378,14 @@
 <p>An access token represents permission to call an API. It is not the user&#39;s password and should be scoped, short-lived, and sent only to the intended resource server.</p>
 </aside>
 <div class="content-block content-block--diagram">
-  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart LR&#10;  Owner[&quot;Resource owner&quot;] --&gt;|grants consent| Auth[&quot;Authorization server&quot;]&#10;  Client[&quot;Client app&quot;] --&gt;|requests token| Auth&#10;  Auth --&gt;|issues access token| Client&#10;  Client --&gt;|Bearer access token| API[&quot;Resource server&quot;]&#10;  API --&gt;|protected data| Client"></div>
+  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart LR&#10;  Owner[&quot;Resource owner&quot;] --&gt;|grants consent| Auth[&quot;Authorization server&quot;]&#10;  Client[&quot;Client app&quot;] --&gt;|requests token| Auth&#10;  Auth --&gt;|issues access token| Client&#10;  Client --&gt;|Bearer access token| API[&quot;Resource server&quot;]&#10;  API --&gt;|protected data| Client">
+    <div class="diagram-toolbar" data-export-control>
+      <button class="toolbar-button" type="button" data-zoom-in title="Zoom In">+</button>
+      <button class="toolbar-button" type="button" data-zoom-out title="Zoom Out">-</button>
+      <button class="toolbar-button" type="button" data-fit title="Fit to Screen">🎯</button>
+      <button class="toolbar-button" type="button" data-reset title="Reset Layout">🔄</button>
+    </div>
+  </div>
 </div></div>
   </section>
 </article>
@@ -346,6 +398,7 @@
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dagre@0.7.4/dist/dagre.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
     <script>
@@ -502,8 +555,6 @@
                   'background-color': '#fffaf2',
                   'label': 'data(label)',
                   'shape': 'data(shape)',
-                  'width': 'label',
-                  'height': 'label',
                   'padding': '14px',
                   'border-width': 1.5,
                   'border-color': '#1f6f78',
@@ -514,6 +565,21 @@
                   'text-halign': 'center',
                   'text-wrap': 'wrap',
                   'text-max-width': '220px'
+                }
+              },
+              {
+                selector: 'node:childless',
+                style: {
+                  'width': (node) => {
+                    const label = node.data('label') || '';
+                    const longestLine = label.split('\n').reduce((max, line) => Math.max(max, line.length), 0);
+                    return Math.max(80, longestLine * 7.5 + 28);
+                  },
+                  'height': (node) => {
+                    const label = node.data('label') || '';
+                    const lineCount = label.split('\n').length;
+                    return Math.max(40, lineCount * 16 + 20);
+                  }
                 }
               },
               {
@@ -568,6 +634,36 @@
               padding: 20
             }
           });
+
+          const toolbar = host.querySelector('.diagram-toolbar');
+          if (toolbar) {
+            toolbar.querySelector('[data-zoom-in]').addEventListener('click', () => {
+              cy.zoom({
+                level: cy.zoom() * 1.25,
+                position: { x: cy.width() / 2, y: cy.height() / 2 }
+              });
+            });
+            toolbar.querySelector('[data-zoom-out]').addEventListener('click', () => {
+              cy.zoom({
+                level: cy.zoom() / 1.25,
+                position: { x: cy.width() / 2, y: cy.height() / 2 }
+              });
+            });
+            toolbar.querySelector('[data-fit]').addEventListener('click', () => {
+              cy.fit(20);
+            });
+            toolbar.querySelector('[data-reset]').addEventListener('click', () => {
+              cy.layout({
+                name: 'dagre',
+                rankDir: direction,
+                nodeSep: 60,
+                edgeSep: 40,
+                rankSep: 60,
+                fit: true,
+                padding: 20
+              }).run();
+            });
+          }
         } catch (error) {
           console.error("Failed to render Cytoscape diagram", error);
           host.innerHTML = `<pre style="padding: 20px; color: red;">Failed to render diagram: ${error.message}</pre>`;
