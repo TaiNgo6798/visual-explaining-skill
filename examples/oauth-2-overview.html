@@ -242,6 +242,12 @@
         overflow: hidden;
       }
 
+      .diagram-frame--sequence {
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+      }
+
       .diagram-frame:fullscreen {
         width: 100vw !important;
         height: 100vh !important;
@@ -385,7 +391,7 @@
 <p>A client sends the user to the authorization server. After the user signs in and consents, the server returns an authorization code to the client redirect URI. The client exchanges that code, plus its PKCE verifier, for tokens.</p>
 </div>
 <div class="content-block content-block--diagram">
-  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart LR&#10;  Start([&quot;Start&quot;]) --&gt; AuthReq[&quot;Auth request\\n+ PKCE challenge&quot;]&#10;  AuthReq --&gt; Login[&quot;User login\\n&amp; consent&quot;]&#10;  Login --&gt; Code[&quot;Auth code\\nreturned&quot;]&#10;  Code --&gt; Exchange[&quot;Code + verifier\\nexchanged&quot;]&#10;  Exchange --&gt; Tokens[&quot;Access token\\n+ refresh token&quot;]&#10;  Tokens --&gt; API[&quot;API call\\nwith token&quot;]&#10;  API --&gt; Resource([&quot;Protected\\nresource&quot;])">
+  <div class="diagram-frame" data-diagram-output data-mermaid-source="sequenceDiagram&#10;  participant User&#10;  participant Client&#10;  participant Auth as Auth Server&#10;  participant API as Resource Server&#10;  User -&gt;&gt; Client : Start sign-in&#10;  Client -&gt;&gt; Auth : Auth request + PKCE challenge&#10;  Auth -&gt;&gt; User : Show login &amp; consent screen&#10;  User -&gt;&gt; Auth : Authenticate &amp; consent&#10;  Auth -&gt;&gt; Client : Redirect with auth code&#10;  Client -&gt;&gt; Auth : Exchange code + verifier&#10;  Auth --&gt;&gt; Client : Access token + refresh token&#10;  Client -&gt;&gt; API : API request with access token&#10;  API --&gt;&gt; Client : Protected resource">
     <div class="diagram-toolbar" data-export-control>
       <button class="toolbar-button" type="button" data-fullscreen title="Toggle Fullscreen">⛶</button>
     </div>
@@ -410,7 +416,7 @@
 <p>An access token represents permission to call an API. It is not the user&#39;s password and should be scoped, short-lived, and sent only to the intended resource server.</p>
 </aside>
 <div class="content-block content-block--diagram">
-  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart TD&#10;  Owner([&quot;Resource owner&quot;])&#10;  Client[&quot;Client app&quot;]&#10;  Auth[&quot;Authorization server&quot;]&#10;  API[&quot;Resource server&quot;]&#10;&#10;  Owner --&gt;|grants consent| Auth&#10;  Client --&gt;|requests token| Auth&#10;  Auth --&gt;|issues access token| Client&#10;  Client --&gt;|Bearer token| API&#10;  API --&gt;|protected data| Client">
+  <div class="diagram-frame" data-diagram-output data-mermaid-source="sequenceDiagram&#10;  participant Owner as Resource Owner&#10;  participant Client&#10;  participant Auth as Auth Server&#10;  participant API as Resource Server&#10;  Owner -&gt;&gt; Auth : Grant consent&#10;  Client -&gt;&gt; Auth : Request access token&#10;  Auth --&gt;&gt; Client : Issue access token&#10;  Client -&gt;&gt; API : Bearer access token&#10;  API --&gt;&gt; Client : Protected data">
     <div class="diagram-toolbar" data-export-control>
       <button class="toolbar-button" type="button" data-fullscreen title="Toggle Fullscreen">⛶</button>
     </div>
@@ -421,7 +427,7 @@
         </section>
 
         <footer>
-          Diagrams are rendered in-browser using Cytoscape.js and the Dagre layout extension.
+          Diagrams are rendered in-browser using Cytoscape.js, Dagre, and a native SVG sequence renderer.
         </footer>
       </div>
     </main>
@@ -463,6 +469,179 @@
           document.msExitFullscreen();
         }
       }
+
+      // ── Sequence diagram renderer ──────────────────────────────────────────
+
+      function parseSequenceDiagram(source) {
+        const lines = source.split('\n');
+        const participants = [];
+        const participantIndex = new Map();
+        const idToAlias = new Map(); // maps short ID -> display alias
+        const messages = [];
+
+        function resolveAlias(name) {
+          const key = name.trim();
+          return idToAlias.has(key) ? idToAlias.get(key) : key;
+        }
+
+        function ensureParticipant(name) {
+          const resolved = resolveAlias(name);
+          if (!participantIndex.has(resolved)) {
+            participantIndex.set(resolved, participants.length);
+            participants.push(resolved);
+          }
+          return resolved;
+        }
+
+        for (const raw of lines) {
+          const line = raw.trim();
+          if (!line || line.startsWith('%%') || /^sequenceDiagram$/i.test(line)) continue;
+
+          // participant / actor declarations (with optional "as Alias")
+          const partMatch = line.match(/^(?:participant|actor)\s+(\S+)(?:\s+as\s+(.+))?$/i);
+          if (partMatch) {
+            const id = partMatch[1];
+            const alias = partMatch[2] ? partMatch[2].trim() : id;
+            // register id → alias mapping so arrows can use the short ID
+            if (alias !== id) idToAlias.set(id, alias);
+            if (!participantIndex.has(alias)) {
+              participantIndex.set(alias, participants.length);
+              participants.push(alias);
+            }
+            continue;
+          }
+
+          // note over / note left / note right
+          const noteMatch = line.match(/^Note\s+(?:over|left of|right of)\s+([^:]+):\s*(.+)$/i);
+          if (noteMatch) {
+            const target = ensureParticipant(noteMatch[1].trim());
+            messages.push({ type: 'note', target, text: noteMatch[2].trim() });
+            continue;
+          }
+
+          // message arrows: A ->> B : label  or  A -> B : label  or  A -->> B : label
+          const msgMatch = line.match(/^([^-]+?)\s*(--?>>?|--?x|--)\s*([^:]+?)\s*:\s*(.+)$/);
+          if (msgMatch) {
+            const from = ensureParticipant(msgMatch[1].trim());
+            const arrowType = msgMatch[2];
+            const to = ensureParticipant(msgMatch[3].trim());
+            const label = msgMatch[4].trim();
+            const dashed = arrowType.startsWith('--');
+            const async = arrowType.endsWith('x');
+            messages.push({ type: 'message', from, to, label, dashed, async });
+            continue;
+          }
+        }
+
+        return { participants, messages };
+      }
+
+      function renderSequenceDiagramSVG(source) {
+        const { participants, messages } = parseSequenceDiagram(source);
+        if (participants.length === 0) return '';
+
+        // Layout constants
+        const BOX_W = 130;
+        const BOX_H = 36;
+        const COL_GAP = 80;        // gap between participant boxes
+        const COL_STEP = BOX_W + COL_GAP;
+        const TOP_PAD = 20;
+        const MSG_START_Y = TOP_PAD + BOX_H + 24;
+        const ROW_H = 52;          // vertical step per message
+        const NOTE_H = 32;
+        const FONT = 'Georgia, Times New Roman, serif';
+        const FONT_SMALL = '"Helvetica Neue", Arial, sans-serif';
+        const INK = '#1c1812';
+        const MUTED = '#6c6051';
+        const ACCENT = '#1f6f78';
+        const LINE_CLR = 'rgba(48,35,21,0.18)';
+        const BOX_BG = '#fffaf2';
+        const NOTE_BG = 'rgba(31,111,120,0.07)';
+
+        const totalW = participants.length * COL_STEP - COL_GAP;
+        const colX = (i) => i * COL_STEP + BOX_W / 2;  // center x of column i
+        const participantX = (name) => colX(participants.indexOf(name));
+
+        // Compute total height
+        let totalRows = 0;
+        for (const m of messages) {
+          totalRows += m.type === 'note' ? 0.7 : 1;
+        }
+        const totalH = MSG_START_Y + totalRows * ROW_H + BOX_H + TOP_PAD + 8;
+
+        const svgParts = [];
+        svgParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${totalW + 40} ${totalH}" style="display:block;font-family:${FONT};overflow:visible">`);
+        svgParts.push(`<defs><marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="${ACCENT}"/></marker><marker id="arrx" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><line x1="0" y1="0" x2="8" y2="8" stroke="${ACCENT}" stroke-width="1.5"/><line x1="8" y1="0" x2="0" y2="8" stroke="${ACCENT}" stroke-width="1.5"/></marker></defs>`);
+
+        // Participant boxes (top)
+        for (let i = 0; i < participants.length; i++) {
+          const cx = colX(i) + 20;
+          const bx = cx - BOX_W / 2;
+          const by = TOP_PAD;
+          svgParts.push(`<rect x="${bx}" y="${by}" width="${BOX_W}" height="${BOX_H}" rx="8" fill="${BOX_BG}" stroke="${ACCENT}" stroke-width="1.5"/>`);
+          svgParts.push(`<text x="${cx}" y="${by + BOX_H / 2 + 5}" text-anchor="middle" font-size="12" font-family="${FONT}" fill="${INK}">${participants[i]}</text>`);
+        }
+
+        // Lifelines (will be drawn behind messages)
+        const lifelineEnd = totalH - BOX_H - TOP_PAD - 8;
+        for (let i = 0; i < participants.length; i++) {
+          const cx = colX(i) + 20;
+          svgParts.push(`<line x1="${cx}" y1="${TOP_PAD + BOX_H}" x2="${cx}" y2="${lifelineEnd}" stroke="${LINE_CLR}" stroke-width="1.5" stroke-dasharray="5,4"/>`);
+        }
+
+        // Messages
+        let curY = MSG_START_Y;
+        for (const m of messages) {
+          if (m.type === 'note') {
+            const tx = participantX(m.target) + 20;
+            const nx = tx + 8;
+            svgParts.push(`<rect x="${nx}" y="${curY - NOTE_H / 2}" width="${BOX_W - 16}" height="${NOTE_H}" rx="6" fill="${NOTE_BG}" stroke="${ACCENT}" stroke-width="1" opacity="0.85"/>`);
+            svgParts.push(`<text x="${nx + (BOX_W - 16) / 2}" y="${curY + 5}" text-anchor="middle" font-size="10" font-family="${FONT_SMALL}" fill="${MUTED}">${m.text}</text>`);
+            curY += ROW_H * 0.7;
+            continue;
+          }
+
+          const x1 = participantX(m.from) + 20;
+          const x2 = participantX(m.to) + 20;
+          const selfLoop = x1 === x2;
+
+          const dashAttr = m.dashed ? 'stroke-dasharray="6,4"' : '';
+          const markerEnd = m.async ? 'url(#arrx)' : 'url(#arr)';
+
+          if (selfLoop) {
+            // Self-loop: draw two short horizontal + vertical segments
+            const lx = x1 + BOX_W * 0.42;
+            svgParts.push(`<polyline points="${x1},${curY} ${lx},${curY} ${lx},${curY + 28} ${x2},${curY + 28}" fill="none" stroke="${ACCENT}" stroke-width="1.5" ${dashAttr} marker-end="${markerEnd}"/>`);
+            svgParts.push(`<text x="${lx + 6}" y="${curY + 16}" font-size="11" font-family="${FONT_SMALL}" fill="${MUTED}">${m.label}</text>`);
+            curY += ROW_H;
+          } else {
+            // Regular message
+            const leftX = Math.min(x1, x2);
+            const rightX = Math.max(x1, x2);
+            const midX = (x1 + x2) / 2;
+            svgParts.push(`<line x1="${x1}" y1="${curY}" x2="${x2}" y2="${curY}" stroke="${ACCENT}" stroke-width="1.5" ${dashAttr} marker-end="${markerEnd}"/>`);
+            // Label background
+            const labelW = Math.max(60, m.label.length * 6.2 + 12);
+            svgParts.push(`<rect x="${midX - labelW / 2}" y="${curY - 16}" width="${labelW}" height="16" rx="4" fill="${BOX_BG}" opacity="0.9"/>`);
+            svgParts.push(`<text x="${midX}" y="${curY - 4}" text-anchor="middle" font-size="11" font-family="${FONT_SMALL}" fill="${MUTED}">${m.label}</text>`);
+            curY += ROW_H;
+          }
+        }
+
+        // Participant boxes (bottom)
+        for (let i = 0; i < participants.length; i++) {
+          const cx = colX(i) + 20;
+          const bx = cx - BOX_W / 2;
+          const by = lifelineEnd;
+          svgParts.push(`<rect x="${bx}" y="${by}" width="${BOX_W}" height="${BOX_H}" rx="8" fill="${BOX_BG}" stroke="${ACCENT}" stroke-width="1.5"/>`);
+          svgParts.push(`<text x="${cx}" y="${by + BOX_H / 2 + 5}" text-anchor="middle" font-size="12" font-family="${FONT}" fill="${INK}">${participants[i]}</text>`);
+        }
+
+        svgParts.push('</svg>');
+        return svgParts.join('\n');
+      }
+
+      // ── Flowchart (Cytoscape) renderer ────────────────────────────────────────
 
       function parseMermaid(source) {
         const lines = source.split('\n');
@@ -599,6 +778,37 @@
       }
 
       document.querySelectorAll("[data-mermaid-source]").forEach((host, index) => {
+        // Sequence diagrams rendered as SVG (no Cytoscape needed)
+        if (/^\s*sequenceDiagram\b/i.test(host.dataset.mermaidSource)) {
+          host.classList.add('diagram-frame--sequence');
+          const svg = renderSequenceDiagramSVG(host.dataset.mermaidSource);
+          // Insert SVG before the toolbar
+          const toolbar = host.querySelector('.diagram-toolbar');
+          const div = document.createElement('div');
+          div.style.cssText = 'width:100%;height:100%;overflow:auto;padding:16px;box-sizing:border-box';
+          div.innerHTML = svg;
+          host.insertBefore(div, toolbar);
+
+          // Fullscreen wiring for sequence diagrams
+          const fullscreenBtn = toolbar && toolbar.querySelector('[data-fullscreen]');
+          if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+              if (getFullscreenElement() === host) exitFullscreen();
+              else requestFullscreen(host);
+            });
+          }
+          const handleFsChange = () => {
+            const isFs = getFullscreenElement() === host;
+            if (fullscreenBtn) {
+              fullscreenBtn.textContent = isFs ? '\u2715' : '\u26f6';
+              fullscreenBtn.title = isFs ? 'Exit Fullscreen' : 'Toggle Fullscreen';
+            }
+          };
+          host.addEventListener('fullscreenchange', handleFsChange);
+          host.addEventListener('webkitfullscreenchange', handleFsChange);
+          return;
+        }
+
         const source = host.dataset.mermaidSource;
         try {
           const { elements, direction } = parseMermaid(source);
