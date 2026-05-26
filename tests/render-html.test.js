@@ -395,3 +395,26 @@ test('resolveOutputPath throws when --output is relative and config is missing',
     /Missing default export directory config/,
   );
 });
+
+test('renderVisualExplainerHtml adds interactive diagram navigation toolbar', () => {
+  const html = renderVisualExplainerHtml({
+    title: 'Toolbar Test',
+    sections: [
+      {
+        heading: 'Flow',
+        blocks: [
+          {
+            type: 'mermaid',
+            mermaid: 'flowchart TD\n  A --> B',
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.match(html, /class="diagram-toolbar"/);
+  assert.match(html, /data-zoom-in/);
+  assert.match(html, /data-zoom-out/);
+  assert.match(html, /data-fit/);
+  assert.match(html, /data-reset/);
+});

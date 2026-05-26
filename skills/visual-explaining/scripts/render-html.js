@@ -270,7 +270,14 @@ function renderMermaidBlock(block) {
 
   return [
     '<div class="content-block content-block--diagram">',
-    `  <div class="diagram-frame" data-diagram-output data-mermaid-source="${escapeAttribute(mermaid)}"></div>`,
+    `  <div class="diagram-frame" data-diagram-output data-mermaid-source="${escapeAttribute(mermaid)}">`,
+    '    <div class="diagram-toolbar" data-export-control>',
+    '      <button class="toolbar-button" type="button" data-zoom-in title="Zoom In">+</button>',
+    '      <button class="toolbar-button" type="button" data-zoom-out title="Zoom Out">-</button>',
+    '      <button class="toolbar-button" type="button" data-fit title="Fit to Screen">🎯</button>',
+    '      <button class="toolbar-button" type="button" data-reset title="Reset Layout">🔄</button>',
+    '    </div>',
+    '  </div>',
     '</div>',
   ].join('\n');
 }
