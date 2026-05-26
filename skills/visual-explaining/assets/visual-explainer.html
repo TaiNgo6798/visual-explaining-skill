@@ -239,15 +239,10 @@
         overflow: hidden;
       }
 
-      .diagram-frame:fullscreen {
-        width: 100vw !important;
-        height: 100vh !important;
-        border: none;
-        border-radius: 0;
-        background: #fffaf2;
-      }
-
-      .diagram-frame:-webkit-full-screen {
+      .diagram-frame:fullscreen,
+      .diagram-frame:-webkit-full-screen,
+      .diagram-frame:-moz-full-screen,
+      .diagram-frame:-ms-fullscreen {
         width: 100vw !important;
         height: 100vh !important;
         border: none;
@@ -368,6 +363,37 @@
     <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
     <script>
       const { toPng } = htmlToImage;
+
+      function getFullscreenElement() {
+        return document.fullscreenElement || 
+               document.webkitFullscreenElement || 
+               document.mozFullScreenElement || 
+               document.msFullscreenElement;
+      }
+
+      function requestFullscreen(element) {
+        if (element.requestFullscreen) {
+          element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+          element.webkitRequestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+          element.mozRequestFullScreen();
+        } else if (element.msRequestFullscreen) {
+          element.msRequestFullscreen();
+        }
+      }
+
+      function exitFullscreen() {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
 
       function parseMermaid(source) {
         const lines = source.split('\n');
@@ -605,29 +631,34 @@
             const fullscreenBtn = toolbar.querySelector('[data-fullscreen]');
             if (fullscreenBtn) {
               fullscreenBtn.addEventListener('click', () => {
-                if (document.fullscreenElement === host) {
-                  document.exitFullscreen();
+                if (getFullscreenElement() === host) {
+                  exitFullscreen();
                 } else {
-                  host.requestFullscreen().catch((err) => {
-                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
-                  });
+                  requestFullscreen(host);
                 }
               });
             }
           }
 
-          host.addEventListener('fullscreenchange', () => {
-            const isFullscreen = document.fullscreenElement === host;
+          const handleFullscreenChange = () => {
+            const isFullscreen = getFullscreenElement() === host;
             const btn = host.querySelector('[data-fullscreen]');
             if (btn) {
               btn.textContent = isFullscreen ? '✕' : '⛶';
               btn.title = isFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen';
             }
-            setTimeout(() => {
-              cy.resize();
-              cy.fit(20);
-            }, 120);
+          };
+
+          host.addEventListener('fullscreenchange', handleFullscreenChange);
+          host.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+          host.addEventListener('mozfullscreenchange', handleFullscreenChange);
+          host.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+          const resizeObserver = new ResizeObserver(() => {
+            cy.resize();
+            cy.fit(20);
           });
+          resizeObserver.observe(host);
         } catch (error) {
           console.error("Failed to render Cytoscape diagram", error);
           host.innerHTML = `<pre style="padding: 20px; color: red;">Failed to render diagram: ${error.message}</pre>`;
