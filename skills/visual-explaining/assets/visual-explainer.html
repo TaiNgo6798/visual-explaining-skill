@@ -215,6 +215,7 @@
       }
 
       .content-block--diagram {
+        min-width: 0;
         border-radius: 18px;
         padding: 20px;
         background:
@@ -229,6 +230,8 @@
       }
 
       .diagram-frame {
+        width: 100%;
+        min-width: 0;
         min-height: 240px;
         height: 380px;
         border: 1px solid rgba(31, 111, 120, 0.18);
@@ -239,9 +242,30 @@
         overflow: hidden;
       }
 
-      .diagram-frame:fullscreen,
-      .diagram-frame:-webkit-full-screen,
-      .diagram-frame:-moz-full-screen,
+      .diagram-frame:fullscreen {
+        width: 100vw !important;
+        height: 100vh !important;
+        border: none;
+        border-radius: 0;
+        background: #fffaf2;
+      }
+
+      .diagram-frame:-webkit-full-screen {
+        width: 100vw !important;
+        height: 100vh !important;
+        border: none;
+        border-radius: 0;
+        background: #fffaf2;
+      }
+
+      .diagram-frame:-moz-full-screen {
+        width: 100vw !important;
+        height: 100vh !important;
+        border: none;
+        border-radius: 0;
+        background: #fffaf2;
+      }
+
       .diagram-frame:-ms-fullscreen {
         width: 100vw !important;
         height: 100vh !important;
