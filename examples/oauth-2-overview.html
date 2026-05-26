@@ -671,8 +671,8 @@
                   'target-arrow-color': '#4d6070',
                   'target-arrow-shape': 'triangle',
                   'arrow-scale': 1.15,
-                  'curve-style': 'taxi',
-                  'taxi-direction': direction === 'TB' ? 'vertical' : 'horizontal',
+                  'curve-style': 'bezier',
+                  'control-point-step-size': 60,
                   'label': 'data(label)',
                   'font-family': 'Helvetica Neue, Arial, sans-serif',
                   'font-size': '11px',
@@ -687,9 +687,9 @@
             layout: {
               name: 'dagre',
               rankDir: direction,
-              nodeSep: 60,
+              nodeSep: 100,
               edgeSep: 40,
-              rankSep: 60,
+              rankSep: 100,
               fit: true,
               padding: 20
             }

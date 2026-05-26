@@ -316,7 +316,7 @@ test('renderVisualExplainerHtml configures Cytoscape Dagre layout and arrow rout
   });
 
   assert.match(html, /'target-arrow-shape': 'triangle'/);
-  assert.match(html, /'curve-style': 'taxi'/);
+  assert.match(html, /'curve-style': 'bezier'/);
   assert.match(html, /name: 'dagre'/);
 });
 
