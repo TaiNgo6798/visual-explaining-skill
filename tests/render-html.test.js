@@ -413,8 +413,7 @@ test('renderVisualExplainerHtml adds interactive diagram navigation toolbar', ()
   });
 
   assert.match(html, /class="diagram-toolbar"/);
-  assert.match(html, /data-zoom-in/);
-  assert.match(html, /data-zoom-out/);
-  assert.match(html, /data-fit/);
-  assert.match(html, /data-reset/);
+  assert.match(html, /data-fullscreen/);
+  assert.doesNotMatch(html, /data-zoom-in/);
+  assert.doesNotMatch(html, /data-zoom-out/);
 });

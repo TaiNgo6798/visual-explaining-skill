@@ -239,6 +239,22 @@
         overflow: hidden;
       }
 
+      .diagram-frame:fullscreen {
+        width: 100vw !important;
+        height: 100vh !important;
+        border: none;
+        border-radius: 0;
+        background: #fffaf2;
+      }
+
+      .diagram-frame:-webkit-full-screen {
+        width: 100vw !important;
+        height: 100vh !important;
+        border: none;
+        border-radius: 0;
+        background: #fffaf2;
+      }
+
       .diagram-toolbar {
         position: absolute;
         bottom: 12px;
@@ -586,33 +602,32 @@
 
           const toolbar = host.querySelector('.diagram-toolbar');
           if (toolbar) {
-            toolbar.querySelector('[data-zoom-in]').addEventListener('click', () => {
-              cy.zoom({
-                level: cy.zoom() * 1.25,
-                position: { x: cy.width() / 2, y: cy.height() / 2 }
+            const fullscreenBtn = toolbar.querySelector('[data-fullscreen]');
+            if (fullscreenBtn) {
+              fullscreenBtn.addEventListener('click', () => {
+                if (document.fullscreenElement === host) {
+                  document.exitFullscreen();
+                } else {
+                  host.requestFullscreen().catch((err) => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                  });
+                }
               });
-            });
-            toolbar.querySelector('[data-zoom-out]').addEventListener('click', () => {
-              cy.zoom({
-                level: cy.zoom() / 1.25,
-                position: { x: cy.width() / 2, y: cy.height() / 2 }
-              });
-            });
-            toolbar.querySelector('[data-fit]').addEventListener('click', () => {
-              cy.fit(20);
-            });
-            toolbar.querySelector('[data-reset]').addEventListener('click', () => {
-              cy.layout({
-                name: 'dagre',
-                rankDir: direction,
-                nodeSep: 60,
-                edgeSep: 40,
-                rankSep: 60,
-                fit: true,
-                padding: 20
-              }).run();
-            });
+            }
           }
+
+          host.addEventListener('fullscreenchange', () => {
+            const isFullscreen = document.fullscreenElement === host;
+            const btn = host.querySelector('[data-fullscreen]');
+            if (btn) {
+              btn.textContent = isFullscreen ? '✕' : '⛶';
+              btn.title = isFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen';
+            }
+            setTimeout(() => {
+              cy.resize();
+              cy.fit(20);
+            }, 120);
+          });
         } catch (error) {
           console.error("Failed to render Cytoscape diagram", error);
           host.innerHTML = `<pre style="padding: 20px; color: red;">Failed to render diagram: ${error.message}</pre>`;
