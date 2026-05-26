@@ -372,12 +372,12 @@
         </header>
 
         <section class="pairs">
-          <article class="pair" data-export-section data-export-title="Authorization Code with PKCE Flow">
+          <article class="pair" data-export-section data-export-title="Authorization Code with PKCE">
   <section class="text-pane">
     <div class="section-heading">
       <div>
         <p class="section-label">Explanation</p>
-        <h2>Authorization Code with PKCE Flow</h2>
+        <h2>Authorization Code with PKCE</h2>
       </div>
       <button class="export-button" type="button" data-export-control data-export-section-button>Save section PNG</button>
     </div>
@@ -385,7 +385,7 @@
 <p>A client sends the user to the authorization server. After the user signs in and consents, the server returns an authorization code to the client redirect URI. The client exchanges that code, plus its PKCE verifier, for tokens.</p>
 </div>
 <div class="content-block content-block--diagram">
-  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart LR&#10;  Start[&quot;1. Start Sign In&quot;] --&gt; AuthReq[&quot;2. Auth Request + Challenge&quot;]&#10;  AuthReq --&gt; Consent[&quot;3. User Consent&quot;]&#10;  Consent --&gt; AuthCode[&quot;4. Redirect with Code&quot;]&#10;  AuthCode --&gt; Exchange[&quot;5. Code + Verifier Exchange&quot;]&#10;  Exchange --&gt; Tokens[&quot;6. Access &amp; Refresh Tokens Issued&quot;]&#10;  Tokens --&gt; APIReq[&quot;7. API Request with Token&quot;]&#10;  APIReq --&gt; Resource[&quot;8. Protected Resource Delivered&quot;]">
+  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart LR&#10;  Start([&quot;Start&quot;]) --&gt; AuthReq[&quot;Auth request\\n+ PKCE challenge&quot;]&#10;  AuthReq --&gt; Login[&quot;User login\\n&amp; consent&quot;]&#10;  Login --&gt; Code[&quot;Auth code\\nreturned&quot;]&#10;  Code --&gt; Exchange[&quot;Code + verifier\\nexchanged&quot;]&#10;  Exchange --&gt; Tokens[&quot;Access token\\n+ refresh token&quot;]&#10;  Tokens --&gt; API[&quot;API call\\nwith token&quot;]&#10;  API --&gt; Resource([&quot;Protected\\nresource&quot;])">
     <div class="diagram-toolbar" data-export-control>
       <button class="toolbar-button" type="button" data-fullscreen title="Toggle Fullscreen">⛶</button>
     </div>
@@ -410,7 +410,7 @@
 <p>An access token represents permission to call an API. It is not the user&#39;s password and should be scoped, short-lived, and sent only to the intended resource server.</p>
 </aside>
 <div class="content-block content-block--diagram">
-  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart LR&#10;  Owner[&quot;Resource owner&quot;] --&gt;|grants consent| Auth[&quot;Authorization server&quot;]&#10;  Client[&quot;Client app&quot;] --&gt;|requests token| Auth&#10;  Auth --&gt;|issues access token| Client&#10;  Client --&gt;|Bearer access token| API[&quot;Resource server&quot;]&#10;  API --&gt;|protected data| Client">
+  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart TD&#10;  Owner([&quot;Resource owner&quot;])&#10;  Client[&quot;Client app&quot;]&#10;  Auth[&quot;Authorization server&quot;]&#10;  API[&quot;Resource server&quot;]&#10;&#10;  Owner --&gt;|grants consent| Auth&#10;  Client --&gt;|requests token| Auth&#10;  Auth --&gt;|issues access token| Client&#10;  Client --&gt;|Bearer token| API&#10;  API --&gt;|protected data| Client">
     <div class="diagram-toolbar" data-export-control>
       <button class="toolbar-button" type="button" data-fullscreen title="Toggle Fullscreen">⛶</button>
     </div>
