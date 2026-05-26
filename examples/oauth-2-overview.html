@@ -195,10 +195,23 @@
       }
 
       .content-block--files li {
-        display: grid;
-        grid-template-columns: minmax(180px, max-content) 1fr;
-        gap: 10px;
-        align-items: baseline;
+        padding: 4px 0;
+      }
+
+      .file-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .file-item code {
+        align-self: flex-start;
+      }
+
+      .file-note {
+        font-size: 0.95rem;
+        color: #4d6070;
+        line-height: 1.5;
       }
 
       .content-block--diagram {
@@ -217,24 +230,13 @@
 
       .diagram-frame {
         min-height: 240px;
-        padding: 20px;
+        height: 380px;
         border: 1px solid rgba(31, 111, 120, 0.18);
         border-radius: 18px;
         background: rgba(255, 255, 255, 0.74);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-        overflow-x: auto;
-      }
-
-      .diagram-frame svg {
-        display: block;
-        max-width: 100%;
-        height: auto;
-        margin: 0 auto;
-      }
-
-      .mermaid-source {
-        display: none;
-        white-space: pre-wrap;
+        position: relative;
+        overflow: hidden;
       }
 
       footer {
@@ -288,7 +290,7 @@
             <div>
               <p class="eyebrow">Visual Explainer</p>
               <h1>OAuth 2.0 Overview</h1>
-              <p class="summary">OAuth 2.0 lets an application access protected resources with delegated permission, without asking the user to share their password with that application.</p>
+              <p class="summary">This visual explainer maps out the core flows, roles, and token structures in the OAuth 2.0 authorization framework.</p>
             </div>
             <div class="export-actions" data-export-control>
               <button class="export-button" type="button" data-export-page>Save page PNG</button>
@@ -310,20 +312,7 @@
 <p>A client sends the user to the authorization server. After the user signs in and consents, the server returns an authorization code to the client redirect URI. The client exchanges that code, plus its PKCE verifier, for tokens.</p>
 </div>
 <div class="content-block content-block--diagram">
-  <div class="diagram-frame" data-diagram-output></div>
-  <pre class="mermaid-source" data-mermaid-source aria-hidden="true">sequenceDiagram
-  participant User
-  participant Client as Client app
-  participant Auth as Authorization server
-  participant API as Resource server
-  User-&gt;&gt;Client: Start sign in
-  Client-&gt;&gt;Auth: Authorization request plus code challenge
-  Auth-&gt;&gt;User: Authenticate and consent
-  Auth--&gt;&gt;Client: Redirect with authorization code
-  Client-&gt;&gt;Auth: Exchange code plus code verifier
-  Auth--&gt;&gt;Client: Access token and optional refresh token
-  Client-&gt;&gt;API: Request with access token
-  API--&gt;&gt;Client: Protected resource</pre>
+  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart TD&#10;  User --&gt;|Start sign in| Client[&quot;Client app&quot;]&#10;  Client --&gt;|Authorization request + challenge| Auth[&quot;Authorization server&quot;]&#10;  Auth --&gt;|Authenticate and consent| User&#10;  Auth --&gt;|Redirect with authorization code| Client&#10;  Client --&gt;|Exchange code + verifier| Auth&#10;  Auth --&gt;|Access token + optional refresh| Client&#10;  Client --&gt;|Request with access token| API[&quot;Resource server&quot;]&#10;  API --&gt;|Protected resource| Client"></div>
 </div></div>
   </section>
 </article>
@@ -344,61 +333,245 @@
 <p>An access token represents permission to call an API. It is not the user&#39;s password and should be scoped, short-lived, and sent only to the intended resource server.</p>
 </aside>
 <div class="content-block content-block--diagram">
-  <div class="diagram-frame" data-diagram-output></div>
-  <pre class="mermaid-source" data-mermaid-source aria-hidden="true">flowchart LR
-  Owner[Resource owner] --&gt;|grants consent| Auth[Authorization server]
-  Client[Client app] --&gt;|requests token| Auth
-  Auth --&gt;|issues access token| Client
-  Client --&gt;|Bearer access token| API[Resource server]
-  API --&gt;|protected data| Client</pre>
+  <div class="diagram-frame" data-diagram-output data-mermaid-source="flowchart LR&#10;  Owner[&quot;Resource owner&quot;] --&gt;|grants consent| Auth[&quot;Authorization server&quot;]&#10;  Client[&quot;Client app&quot;] --&gt;|requests token| Auth&#10;  Auth --&gt;|issues access token| Client&#10;  Client --&gt;|Bearer access token| API[&quot;Resource server&quot;]&#10;  API --&gt;|protected data| Client"></div>
 </div></div>
   </section>
 </article>
         </section>
 
         <footer>
-          Mermaid is rendered in-browser from the embedded source in this file.
+          Diagrams are rendered in-browser using Cytoscape.js and the Dagre layout extension.
         </footer>
       </div>
     </main>
 
-    <script type="module">
-      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-      import { toPng } from "https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/+esm";
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+    <script>
+      const { toPng } = htmlToImage;
 
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: "base",
-        securityLevel: "loose",
-        themeVariables: {
-          primaryColor: "#f7f0e6",
-          primaryTextColor: "#1c1812",
-          primaryBorderColor: "#1f6f78",
-          lineColor: "#4d6070",
-          tertiaryColor: "#f2e5d3",
-          fontFamily: "Georgia, Times New Roman, serif",
-        },
-        flowchart: {
-          curve: "basis",
-          htmlLabels: true,
-        },
-      });
+      function parseMermaid(source) {
+        const lines = source.split('\n');
+        const elements = [];
+        const nodesMap = new Map();
+        let currentParentId = null;
+        let direction = 'TB';
 
-      const blocks = Array.from(document.querySelectorAll("[data-mermaid-source]"));
-      const renders = blocks.map(async (block, index) => {
-        const source = block.textContent.trim();
-        const host = block.closest(".content-block--diagram").querySelector("[data-diagram-output]");
-        const diagramId = `visual-explainer-${index}`;
-        const { svg } = await mermaid.render(diagramId, source);
-        host.innerHTML = svg;
-      });
+        function registerNode(rawId, bracketOpen, label, bracketClose) {
+          const id = rawId.trim();
+          if (!id) return null;
 
-      Promise.all(renders).catch((error) => {
-        console.error("Failed to render Mermaid diagrams", error);
-        const message = error instanceof Error ? error.message : String(error);
-        document.querySelectorAll("[data-diagram-output]").forEach((host) => {
-          host.innerHTML = `<pre>${message}</pre>`;
-        });
+          let shape = 'round-rectangle';
+          if (bracketOpen) {
+            if (bracketOpen.includes('{')) shape = 'diamond';
+            else if (bracketOpen.includes('(') && bracketOpen.includes('[')) shape = 'round-rectangle';
+            else if (bracketOpen.includes('[') && bracketOpen.includes('(')) shape = 'barrel';
+            else if (bracketOpen.includes('(')) shape = bracketOpen.length > 1 ? 'ellipse' : 'round-rectangle';
+            else if (bracketOpen.includes('[')) shape = 'rectangle';
+          }
+
+          let finalLabel = label ? label.trim() : id;
+          finalLabel = finalLabel.replace(/<br\s*\/?>/gi, '\n');
+
+          // If it was originally a cylinder shape and label was quoted or sanitized
+          if (finalLabel.startsWith('(') && finalLabel.endsWith(')') && shape === 'rectangle') {
+            finalLabel = finalLabel.slice(1, -1).trim();
+            shape = 'barrel';
+          }
+
+          if (!nodesMap.has(id)) {
+            const nodeObj = {
+              data: {
+                id,
+                label: finalLabel,
+                shape,
+                parent: currentParentId || undefined
+              }
+            };
+            nodesMap.set(id, nodeObj);
+            elements.push(nodeObj);
+          } else {
+            const existing = nodesMap.get(id);
+            if (label) {
+              existing.data.label = finalLabel;
+              existing.data.shape = shape;
+            }
+            if (currentParentId && !existing.data.parent) {
+              existing.data.parent = currentParentId;
+            }
+          }
+          return id;
+        }
+
+        function parseNodeToken(token) {
+          const nodeMatch = token.match(/^([a-zA-Z0-9_-]+)(?:\s*([([{>{]+)(?:"([^"]+)"|'([^']+)'|([^)\]>}]+))([)\]>}]+))?$/);
+          if (!nodeMatch) {
+            const id = token.trim();
+            registerNode(id);
+            return id;
+          }
+          const [_, id, bracketOpen, labelQ, labelS, labelU] = nodeMatch;
+          const label = labelQ || labelS || labelU;
+          registerNode(id, bracketOpen, label);
+          return id;
+        }
+
+        for (let line of lines) {
+          line = line.trim();
+          if (!line || line.startsWith('%%')) continue;
+
+          const headerMatch = line.match(/^(flowchart|graph)\s+(TD|TB|LR|RL|BT)/i);
+          if (headerMatch) {
+            direction = headerMatch[2].toUpperCase();
+            if (direction === 'TD') direction = 'TB';
+            continue;
+          }
+
+          const subgraphStartMatch = line.match(/^subgraph\s+([a-zA-Z0-9_-]+)(?:\s*(?:\[|"|\[")([^"\]]+)(?:"\]|\]|")?)?/i);
+          if (subgraphStartMatch) {
+            const subId = subgraphStartMatch[1];
+            const subLabel = subgraphStartMatch[2] || subId;
+            const subNode = {
+              data: {
+                id: subId,
+                label: subLabel,
+                shape: 'rectangle',
+                parent: currentParentId || undefined
+              }
+            };
+            nodesMap.set(subId, subNode);
+            elements.push(subNode);
+            currentParentId = subId;
+            continue;
+          }
+
+          if (line.toLowerCase() === 'end') {
+            currentParentId = null;
+            continue;
+          }
+
+          const connectorMatch = line.match(/(--+>|---+|-\.-+>|==+>)(?:\|([^|]+)\|)?/);
+          if (connectorMatch) {
+            const connector = connectorMatch[1];
+            const edgeLabel = connectorMatch[2];
+            const splitIdx = line.indexOf(connectorMatch[0]);
+            const leftPart = line.substring(0, splitIdx).trim();
+            const rightPart = line.substring(splitIdx + connectorMatch[0].length).trim();
+
+            const sourceId = parseNodeToken(leftPart);
+            const targetId = parseNodeToken(rightPart);
+
+            let lineStyle = 'solid';
+            let width = 1.5;
+            if (connector.includes('.')) lineStyle = 'dashed';
+            if (connector.includes('=')) width = 3;
+
+            elements.push({
+              data: {
+                id: `${sourceId}-${targetId}-${elements.length}`,
+                source: sourceId,
+                target: targetId,
+                label: edgeLabel ? edgeLabel.trim() : undefined,
+                lineStyle,
+                width
+              }
+            });
+          } else {
+            parseNodeToken(line);
+          }
+        }
+
+        return { elements, direction };
+      }
+
+      document.querySelectorAll("[data-mermaid-source]").forEach((host, index) => {
+        const source = host.dataset.mermaidSource;
+        try {
+          const { elements, direction } = parseMermaid(source);
+
+          cytoscape({
+            container: host,
+            elements: elements,
+            boxSelectionEnabled: false,
+            autoungrabify: false,
+            style: [
+              {
+                selector: 'node',
+                style: {
+                  'background-color': '#fffaf2',
+                  'label': 'data(label)',
+                  'shape': 'data(shape)',
+                  'width': 'label',
+                  'height': 'label',
+                  'padding': '14px',
+                  'border-width': 1.5,
+                  'border-color': '#1f6f78',
+                  'color': '#1c1812',
+                  'font-family': 'Georgia, Times New Roman, serif',
+                  'font-size': '13px',
+                  'text-valign': 'center',
+                  'text-halign': 'center',
+                  'text-wrap': 'wrap',
+                  'text-max-width': '220px'
+                }
+              },
+              {
+                selector: 'node:active',
+                style: {
+                  'border-color': '#153e44',
+                  'border-width': 2.5
+                }
+              },
+              {
+                selector: 'node:parent',
+                style: {
+                  'background-color': 'rgba(31, 111, 120, 0.04)',
+                  'border-style': 'dashed',
+                  'border-color': 'rgba(31, 111, 120, 0.3)',
+                  'text-valign': 'top',
+                  'text-halign': 'center',
+                  'padding': '18px',
+                  'font-weight': 'bold',
+                  'color': '#1f6f78'
+                }
+              },
+              {
+                selector: 'edge',
+                style: {
+                  'width': 'data(width)',
+                  'line-color': '#4d6070',
+                  'line-style': 'data(lineStyle)',
+                  'target-arrow-color': '#4d6070',
+                  'target-arrow-shape': 'triangle',
+                  'arrow-scale': 1.15,
+                  'curve-style': 'taxi',
+                  'taxi-direction': direction === 'TB' ? 'vertical' : 'horizontal',
+                  'label': 'data(label)',
+                  'font-family': 'Helvetica Neue, Arial, sans-serif',
+                  'font-size': '11px',
+                  'color': '#6c6051',
+                  'text-background-opacity': 0.85,
+                  'text-background-color': '#fffaf2',
+                  'text-background-padding': '4px',
+                  'text-background-shape': 'roundrectangle'
+                }
+              }
+            ],
+            layout: {
+              name: 'dagre',
+              rankDir: direction,
+              nodeSep: 60,
+              edgeSep: 40,
+              rankSep: 60,
+              fit: true,
+              padding: 20
+            }
+          });
+        } catch (error) {
+          console.error("Failed to render Cytoscape diagram", error);
+          host.innerHTML = `<pre style="padding: 20px; color: red;">Failed to render diagram: ${error.message}</pre>`;
+        }
       });
 
       const slugify = (value) =>
