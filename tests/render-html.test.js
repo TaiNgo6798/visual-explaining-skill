@@ -298,6 +298,27 @@ test('renderVisualExplainerHtml includes robust sequence diagram label layout', 
   assert.doesNotMatch(html, /colX\(i\) \+ 20/);
 });
 
+test('renderVisualExplainerHtml keeps sequence SVG font attributes valid for PNG export', () => {
+  const html = renderVisualExplainerHtml({
+    title: 'Sequence Diagram Export',
+    sections: [
+      {
+        heading: 'Register Flow',
+        text: 'Checks sequence diagram SVG serialization.',
+        mermaid: [
+          'sequenceDiagram',
+          '  participant Browser as AutomationClient / Playwright',
+          '  participant API as OpenAI Register API',
+          '  Browser->>API: submit registration form',
+        ].join('\n'),
+      },
+    ],
+  });
+
+  assert.match(html, /const FONT_SMALL = 'Helvetica Neue, Arial, sans-serif';/);
+  assert.doesNotMatch(html, /const FONT_SMALL = '\"Helvetica Neue\", Arial, sans-serif';/);
+});
+
 test('renderVisualExplainerHtml stores Cytoscape instance before resize observer uses it', () => {
   const html = renderVisualExplainerHtml({
     title: 'Flowchart Diagram',

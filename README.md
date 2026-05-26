@@ -142,28 +142,6 @@ cp -R skills/visual-explaining .agents/skills/
 
 Reload the Cursor window, then invoke the skill from Agent chat with `/visual-explaining` or ask for a visual code overview.
 
-## Manual Usage
-
-```bash
-cat <<'JSON' | node skills/visual-explaining/scripts/render-html.js --stdin --output ./visual-explainer.html
-{
-  "title": "Example Overview",
-  "summary": "A short summary of the topic.",
-  "sections": [
-    {
-      "heading": "Request Flow",
-      "blocks": [
-        { "type": "text", "text": "Requests enter through the API and move into the service layer." },
-        { "type": "mermaid", "mermaid": "flowchart TD\n  Client --> API --> Service" }
-      ]
-    }
-  ]
-}
-JSON
-```
-
-Open the generated HTML file in a browser. The page includes buttons to save the full explainer or individual sections as PNG images.
-
 ## License
 
 MIT
