@@ -93,7 +93,7 @@
       h1 {
         margin: 0;
         font-size: clamp(2.3rem, 5vw, 4.4rem);
-        line-height: 0.96;
+        line-height: 1.1;
         letter-spacing: -0.04em;
       }
 
@@ -496,10 +496,13 @@
         if (participants.length === 0) return '';
 
         // Layout constants
-        const BOX_W = 130;
+        const MIN_BOX_W = 100;
         const BOX_H = 36;
         const COL_GAP = 80;        // gap between participant boxes
-        const COL_STEP = BOX_W + COL_GAP;
+        const SIDE_PAD = 20;
+        const BOX_PAD = 12;
+        const CHAR_W = 6.5;
+        const LINE_H = 13;
         const TOP_PAD = 20;
         const MSG_START_Y = TOP_PAD + BOX_H + 24;
         const ROW_H = 52;          // vertical step per message
@@ -513,9 +516,53 @@
         const BOX_BG = '#fffaf2';
         const NOTE_BG = 'rgba(31,111,120,0.07)';
 
-        const totalW = participants.length * COL_STEP - COL_GAP;
-        const colX = (i) => i * COL_STEP + BOX_W / 2;  // center x of column i
-        const participantX = (name) => colX(participants.indexOf(name));
+        const escapeSvgText = (value) => String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
+        const boxWidths = participants.map((p) => Math.max(MIN_BOX_W, p.length * CHAR_W + BOX_PAD * 2));
+        const colCX = [];
+        let cursorX = SIDE_PAD;
+        for (const width of boxWidths) {
+          colCX.push(cursorX + width / 2);
+          cursorX += width + COL_GAP;
+        }
+        const totalW = cursorX - COL_GAP + SIDE_PAD;
+        const participantX = (name) => colCX[participants.indexOf(name)];
+        const participantW = (name) => boxWidths[participants.indexOf(name)];
+
+        function wrapSvgText(text, x, centerY, maxWidth, fontSize, fontFamily, fill) {
+          const maxChars = Math.max(8, Math.floor((maxWidth - BOX_PAD * 2) / CHAR_W));
+          const words = String(text).split(/\s+/).filter(Boolean);
+          const lines = [];
+          let line = '';
+
+          for (const word of words) {
+            const nextLine = line ? `${line} ${word}` : word;
+            if (nextLine.length <= maxChars || !line) {
+              line = nextLine;
+            } else {
+              lines.push(line);
+              line = word;
+            }
+          }
+          if (line) lines.push(line);
+
+          const visibleLines = lines.slice(0, 2);
+          if (lines.length > 2) {
+            visibleLines[1] = `${visibleLines[1].replace(/\.+$/, '')}...`;
+          }
+
+          const firstY = centerY - ((visibleLines.length - 1) * LINE_H) / 2;
+          const tspans = visibleLines
+            .map((part, index) => `<tspan x="${x}" y="${firstY + index * LINE_H}">${escapeSvgText(part)}</tspan>`)
+            .join('');
+
+          return `<text text-anchor="middle" dominant-baseline="central" font-size="${fontSize}" font-family="${fontFamily}" fill="${fill}">${tspans}</text>`;
+        }
 
         // Compute total height
         let totalRows = 0;
@@ -525,22 +572,23 @@
         const totalH = MSG_START_Y + totalRows * ROW_H + BOX_H + TOP_PAD + 8;
 
         const svgParts = [];
-        svgParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${totalW + 40} ${totalH}" style="display:block;font-family:${FONT};overflow:visible">`);
+        svgParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${totalW} ${totalH}" style="display:block;font-family:${FONT};overflow:visible">`);
         svgParts.push(`<defs><marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="${ACCENT}"/></marker><marker id="arrx" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><line x1="0" y1="0" x2="8" y2="8" stroke="${ACCENT}" stroke-width="1.5"/><line x1="8" y1="0" x2="0" y2="8" stroke="${ACCENT}" stroke-width="1.5"/></marker></defs>`);
 
         // Participant boxes (top)
         for (let i = 0; i < participants.length; i++) {
-          const cx = colX(i) + 20;
-          const bx = cx - BOX_W / 2;
+          const cx = colCX[i];
+          const boxW = boxWidths[i];
+          const bx = cx - boxW / 2;
           const by = TOP_PAD;
-          svgParts.push(`<rect x="${bx}" y="${by}" width="${BOX_W}" height="${BOX_H}" rx="8" fill="${BOX_BG}" stroke="${ACCENT}" stroke-width="1.5"/>`);
-          svgParts.push(`<text x="${cx}" y="${by + BOX_H / 2 + 5}" text-anchor="middle" font-size="12" font-family="${FONT}" fill="${INK}">${participants[i]}</text>`);
+          svgParts.push(`<rect x="${bx}" y="${by}" width="${boxW}" height="${BOX_H}" rx="8" fill="${BOX_BG}" stroke="${ACCENT}" stroke-width="1.5"/>`);
+          svgParts.push(wrapSvgText(participants[i], cx, by + BOX_H / 2, boxW, 12, FONT, INK));
         }
 
         // Lifelines (will be drawn behind messages)
         const lifelineEnd = totalH - BOX_H - TOP_PAD - 8;
         for (let i = 0; i < participants.length; i++) {
-          const cx = colX(i) + 20;
+          const cx = colCX[i];
           svgParts.push(`<line x1="${cx}" y1="${TOP_PAD + BOX_H}" x2="${cx}" y2="${lifelineEnd}" stroke="${LINE_CLR}" stroke-width="1.5" stroke-dasharray="5,4"/>`);
         }
 
@@ -548,16 +596,17 @@
         let curY = MSG_START_Y;
         for (const m of messages) {
           if (m.type === 'note') {
-            const tx = participantX(m.target) + 20;
+            const tx = participantX(m.target);
+            const noteW = participantW(m.target) - 16;
             const nx = tx + 8;
-            svgParts.push(`<rect x="${nx}" y="${curY - NOTE_H / 2}" width="${BOX_W - 16}" height="${NOTE_H}" rx="6" fill="${NOTE_BG}" stroke="${ACCENT}" stroke-width="1" opacity="0.85"/>`);
-            svgParts.push(`<text x="${nx + (BOX_W - 16) / 2}" y="${curY + 5}" text-anchor="middle" font-size="10" font-family="${FONT_SMALL}" fill="${MUTED}">${m.text}</text>`);
+            svgParts.push(`<rect x="${nx}" y="${curY - NOTE_H / 2}" width="${noteW}" height="${NOTE_H}" rx="6" fill="${NOTE_BG}" stroke="${ACCENT}" stroke-width="1" opacity="0.85"/>`);
+            svgParts.push(wrapSvgText(m.text, nx + noteW / 2, curY, noteW, 10, FONT_SMALL, MUTED));
             curY += ROW_H * 0.7;
             continue;
           }
 
-          const x1 = participantX(m.from) + 20;
-          const x2 = participantX(m.to) + 20;
+          const x1 = participantX(m.from);
+          const x2 = participantX(m.to);
           const selfLoop = x1 === x2;
 
           const dashAttr = m.dashed ? 'stroke-dasharray="6,4"' : '';
@@ -565,31 +614,30 @@
 
           if (selfLoop) {
             // Self-loop: draw two short horizontal + vertical segments
-            const lx = x1 + BOX_W * 0.42;
+            const lx = x1 + participantW(m.from) * 0.42;
             svgParts.push(`<polyline points="${x1},${curY} ${lx},${curY} ${lx},${curY + 28} ${x2},${curY + 28}" fill="none" stroke="${ACCENT}" stroke-width="1.5" ${dashAttr} marker-end="${markerEnd}"/>`);
-            svgParts.push(`<text x="${lx + 6}" y="${curY + 16}" font-size="11" font-family="${FONT_SMALL}" fill="${MUTED}">${m.label}</text>`);
+            svgParts.push(`<text x="${lx + 6}" y="${curY + 16}" font-size="11" font-family="${FONT_SMALL}" fill="${MUTED}">${escapeSvgText(m.label)}</text>`);
             curY += ROW_H;
           } else {
             // Regular message
-            const leftX = Math.min(x1, x2);
-            const rightX = Math.max(x1, x2);
             const midX = (x1 + x2) / 2;
             svgParts.push(`<line x1="${x1}" y1="${curY}" x2="${x2}" y2="${curY}" stroke="${ACCENT}" stroke-width="1.5" ${dashAttr} marker-end="${markerEnd}"/>`);
             // Label background
             const labelW = Math.max(60, m.label.length * 6.2 + 12);
             svgParts.push(`<rect x="${midX - labelW / 2}" y="${curY - 16}" width="${labelW}" height="16" rx="4" fill="${BOX_BG}" opacity="0.9"/>`);
-            svgParts.push(`<text x="${midX}" y="${curY - 4}" text-anchor="middle" font-size="11" font-family="${FONT_SMALL}" fill="${MUTED}">${m.label}</text>`);
+            svgParts.push(`<text x="${midX}" y="${curY - 4}" text-anchor="middle" font-size="11" font-family="${FONT_SMALL}" fill="${MUTED}">${escapeSvgText(m.label)}</text>`);
             curY += ROW_H;
           }
         }
 
         // Participant boxes (bottom)
         for (let i = 0; i < participants.length; i++) {
-          const cx = colX(i) + 20;
-          const bx = cx - BOX_W / 2;
+          const cx = colCX[i];
+          const boxW = boxWidths[i];
+          const bx = cx - boxW / 2;
           const by = lifelineEnd;
-          svgParts.push(`<rect x="${bx}" y="${by}" width="${BOX_W}" height="${BOX_H}" rx="8" fill="${BOX_BG}" stroke="${ACCENT}" stroke-width="1.5"/>`);
-          svgParts.push(`<text x="${cx}" y="${by + BOX_H / 2 + 5}" text-anchor="middle" font-size="12" font-family="${FONT}" fill="${INK}">${participants[i]}</text>`);
+          svgParts.push(`<rect x="${bx}" y="${by}" width="${boxW}" height="${BOX_H}" rx="8" fill="${BOX_BG}" stroke="${ACCENT}" stroke-width="1.5"/>`);
+          svgParts.push(wrapSvgText(participants[i], cx, by + BOX_H / 2, boxW, 12, FONT, INK));
         }
 
         svgParts.push('</svg>');
@@ -768,7 +816,7 @@
         try {
           const { elements, direction } = parseMermaid(source);
 
-          cytoscape({
+          const cy = cytoscape({
             container: host,
             elements: elements,
             boxSelectionEnabled: false,

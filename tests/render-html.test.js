@@ -258,6 +258,62 @@ test('renderVisualExplainerHtml uses high-resolution PNG export settings', () =>
   assert.doesNotMatch(html, /pixelRatio: 2/);
 });
 
+test('renderVisualExplainerHtml keeps wrapped page titles readable', () => {
+  const html = renderVisualExplainerHtml({
+    title: 'OpenAI Account Register Flow',
+    sections: [
+      {
+        heading: 'Flow',
+        text: 'Checks header title spacing.',
+        mermaid: 'flowchart TD\n  Start[Start] --> Done[Done]',
+      },
+    ],
+  });
+
+  assert.match(html, /h1 \{[\s\S]*?line-height: 1\.1;/);
+});
+
+test('renderVisualExplainerHtml includes robust sequence diagram label layout', () => {
+  const html = renderVisualExplainerHtml({
+    title: 'Sequence Diagram',
+    sections: [
+      {
+        heading: 'Register Flow',
+        text: 'Checks sequence diagram layout code.',
+        mermaid: [
+          'sequenceDiagram',
+          '  participant Browser as AutomationClient / Playwright',
+          '  participant API as OpenAI Register API',
+          '  Browser->>API: submit registration form',
+        ].join('\n'),
+      },
+    ],
+  });
+
+  assert.match(html, /const boxWidths = participants\.map/);
+  assert.match(html, /function wrapSvgText/);
+  assert.match(html, /dominant-baseline="central"/);
+  assert.match(html, /const colCX = \[\]/);
+  assert.doesNotMatch(html, /const BOX_W = 130;/);
+  assert.doesNotMatch(html, /colX\(i\) \+ 20/);
+});
+
+test('renderVisualExplainerHtml stores Cytoscape instance before resize observer uses it', () => {
+  const html = renderVisualExplainerHtml({
+    title: 'Flowchart Diagram',
+    sections: [
+      {
+        heading: 'Flow',
+        text: 'Checks Cytoscape resize handling.',
+        mermaid: 'flowchart TD\n  Start[Start] --> Done[Done]',
+      },
+    ],
+  });
+
+  assert.match(html, /const cy = cytoscape\(\{/);
+  assert.match(html, /cy\.resize\(\);/);
+});
+
 test('renderVisualExplainerHtml configures Cytoscape labels to stay inside nodes', () => {
   const html = renderVisualExplainerHtml({
     title: 'Contained Labels',
