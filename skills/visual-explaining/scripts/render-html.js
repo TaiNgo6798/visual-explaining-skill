@@ -270,8 +270,7 @@ function renderMermaidBlock(block) {
 
   return [
     '<div class="content-block content-block--diagram">',
-    '  <div class="diagram-frame" data-diagram-output></div>',
-    `  <pre class="mermaid-source" data-mermaid-source aria-hidden="true">${escapeHtml(mermaid)}</pre>`,
+    `  <div class="diagram-frame" data-diagram-output data-mermaid-source="${escapeAttribute(mermaid)}"></div>`,
     '</div>',
   ].join('\n');
 }
