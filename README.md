@@ -2,7 +2,7 @@
 
 An open-source LLM skill for generating a single local HTML explainer for a codebase, module, feature, fix, or recent implementation.
 
-The generated HTML can mix prose, file notes, callouts, lists, and Mermaid diagrams. Mermaid renders in the browser, so the skill does not require a local Mermaid renderer.
+The generated HTML can mix prose, file notes, callouts, lists, and diagrams. The diagrams are parsed from standard Mermaid flowchart syntax and rendered in-browser using Cytoscape.js, producing fully interactive, zoomable, pannable, and draggable canvas elements without requiring any local renderer dependencies.
 
 ## Preview
 

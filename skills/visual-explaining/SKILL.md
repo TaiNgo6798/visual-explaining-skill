@@ -40,7 +40,8 @@ Structure rules:
 
 Diagram rules:
 - Mermaid source is the canonical diagram definition
-- Mermaid is rendered client-side in the browser into SVG
+- Diagrams are parsed client-side and rendered into an interactive Cytoscape.js canvas
+- Diagrams support zooming, panning, and draggable nodes (interactive drag-and-drop navigation)
 - Do not depend on `mmdc` or any other globally installed local renderer
 - Do not ask the user to install a renderer as part of this skill
 
@@ -267,7 +268,7 @@ Only say `I opened it in the default browser.` when the helper was run with `--o
 1. One HTML artifact, not mixed output formats
 2. The artifact shape follows the explanation need
 3. Use diagrams selectively and place them near the relevant explanation
-4. Mermaid is canonical; browser rendering produces the SVG
+4. Mermaid is canonical; browser rendering produces the interactive Cytoscape canvas
 5. No global/local renderer dependency
 6. Use real codebase facts, not placeholder architecture language
 7. Keep each section scoped tightly enough to stay readable
@@ -277,8 +278,7 @@ Only say `I opened it in the default browser.` when the helper was run with `--o
 
 - The main deliverable is a single HTML file
 - The HTML contains ordered explanation blocks chosen for the user's question
-- Mermaid diagrams render in-browser to SVG
-- The HTML includes PNG export buttons for the whole page and each section
+- Mermaid diagrams render in-browser as interactive, zoomable, and draggable Cytoscape.js canvases
 - Multiple diagrams must be placed near the specific content they clarify
 - Include the absolute file path and `file:///...` URL in the response
 - Do not require a separate global renderer installation

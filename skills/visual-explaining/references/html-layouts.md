@@ -1,6 +1,6 @@
 # HTML Layout Reference
 
-This skill renders a single HTML artifact. Mermaid diagrams display in the browser when a section includes Mermaid blocks.
+This skill renders a single HTML artifact. Diagrams are parsed from standard Mermaid specifications and rendered in the browser as interactive Cytoscape.js canvases (supporting drag-and-drop node organization and zoom/pan resizing).
 
 ## Core Layout Rules
 
