@@ -127,7 +127,7 @@ Available block types:
 - `animation`: custom HTML/CSS/JS rendered directly in the block
 
 Use a `mermaid` block only when relationships, flow, dependencies, state, or sequence are clearer visually.
-Use an `animation` block only when custom interactivity, canvas animations, or complex HTML is needed to visualize something that a Mermaid diagram cannot handle.
+Use an `animation` block when the user explicitly mentions "animation" in their prompt, or when custom interactivity, canvas animations, or complex HTML is needed to visualize something that a Mermaid diagram cannot handle.
 
 ### Step 5: Draft Mermaid Source
 
