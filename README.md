@@ -10,6 +10,10 @@ The generated HTML can mix prose, file notes, callouts, lists, and diagrams. The
 
 Example artifact: [`examples/oauth-2-overview.html`](examples/oauth-2-overview.html)
 
+Animation block example:
+
+![Sliding window animation block](examples/sliding-window-animation.gif)
+
 ## Structure
 
 The installable skill lives in `skills/visual-explaining/`:
@@ -21,7 +25,8 @@ visual-explaining-skill/
 ├── package.json
 ├── examples/
 │   ├── oauth-2-overview.html
-│   └── oauth-2-overview.png
+│   ├── oauth-2-overview.png
+│   └── sliding-window-animation.gif
 └── skills/
     └── visual-explaining/
         ├── SKILL.md

@@ -214,6 +214,34 @@
         line-height: 1.5;
       }
 
+      .content-block--animation {
+        min-width: 0;
+        border-radius: 18px;
+        padding: 20px;
+        background:
+          linear-gradient(180deg, rgba(252, 248, 241, 0.96), rgba(244, 235, 223, 0.82)),
+          repeating-linear-gradient(
+            135deg,
+            rgba(31, 111, 120, 0.05),
+            rgba(31, 111, 120, 0.05) 10px,
+            transparent 10px,
+            transparent 20px
+        );
+      }
+
+      .animation-frame {
+        width: 100%;
+        min-width: 0;
+        min-height: 240px;
+        height: auto;
+        border: 1px solid rgba(31, 111, 120, 0.18);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.74);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        position: relative;
+        overflow: hidden;
+      }
+
       .content-block--diagram {
         min-width: 0;
         border-radius: 18px;
@@ -336,7 +364,8 @@
         }
 
         .text-pane,
-        .content-block--diagram {
+        .content-block--diagram,
+        .content-block--animation {
           padding: 16px;
         }
 
@@ -354,7 +383,8 @@
           gap: 4px;
         }
 
-        .diagram-frame {
+        .diagram-frame,
+        .animation-frame {
           min-height: 180px;
           padding: 14px;
         }
@@ -369,7 +399,7 @@
             <div>
               <p class="eyebrow">Visual Explainer</p>
               <h1>OAuth 2.0 Overview</h1>
-              <p class="summary">This visual explainer maps out the core flows, roles, and token structures in the OAuth 2.0 authorization framework.</p>
+              <p class="summary">This visual explainer maps out the core flows, roles, token structures, and a custom animation block example rendered inside the same HTML artifact.</p>
             </div>
             <div class="export-actions" data-export-control>
               <button class="export-button" type="button" data-export-page>Save page PNG</button>
@@ -420,6 +450,172 @@
     <div class="diagram-toolbar" data-export-control>
       <button class="toolbar-button" type="button" data-fullscreen title="Toggle Fullscreen">⛶</button>
     </div>
+  </div>
+</div></div>
+  </section>
+</article>
+<article class="pair" data-export-section data-export-title="Sliding Window Technique">
+  <section class="text-pane">
+    <div class="section-heading">
+      <div>
+        <p class="section-label">Explanation</p>
+        <h2>Sliding Window Technique</h2>
+      </div>
+      <button class="export-button" type="button" data-export-control data-export-section-button>Save section PNG</button>
+    </div>
+    <div class="body"><div class="content-block content-block--text">
+<p>Animation blocks are useful when movement explains the idea better than a static diagram. This example shows a fixed-size window scanning an array while the running sum updates at each step.</p>
+</div>
+<div class="content-block content-block--animation">
+  <div class="animation-frame">
+<style>
+  .sliding-window-demo {
+    --cell-size: 58px;
+    --gap: 10px;
+    min-height: 360px;
+    padding: 24px;
+    font-family: Helvetica Neue, Arial, sans-serif;
+    color: #1c1812;
+    background: linear-gradient(135deg, rgba(255,250,242,0.96), rgba(232,244,239,0.88));
+  }
+  .sliding-window-demo * { box-sizing: border-box; }
+  .sliding-window-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(7, var(--cell-size));
+    gap: var(--gap);
+    width: max-content;
+    max-width: 100%;
+    margin: 18px auto 26px;
+    padding: 10px 0 26px;
+  }
+  .sliding-window-cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    border: 1px solid rgba(31,111,120,0.22);
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,0.82);
+    color: #153e44;
+    font: 700 20px/1 Georgia, Times New Roman, serif;
+  }
+  .sliding-window-frame {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    width: calc(var(--cell-size) * 3 + var(--gap) * 2);
+    height: calc(var(--cell-size) + 16px);
+    border: 3px solid #d45d3f;
+    border-radius: 14px;
+    box-shadow: 0 10px 22px rgba(212,93,63,0.18);
+    transform: translateX(calc(var(--step, 0) * (var(--cell-size) + var(--gap))));
+    transition: transform 520ms cubic-bezier(.2,.8,.2,1);
+    pointer-events: none;
+  }
+  .sliding-window-label {
+    position: absolute;
+    left: 50%;
+    bottom: -24px;
+    transform: translateX(-50%);
+    color: #a13e29;
+    font: 700 12px/1 Helvetica Neue, Arial, sans-serif;
+    white-space: nowrap;
+  }
+  .sliding-window-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .sliding-window-stat {
+    border: 1px solid rgba(31,111,120,0.16);
+    border-radius: 12px;
+    padding: 12px;
+    background: rgba(255,255,255,0.62);
+  }
+  .sliding-window-stat b {
+    display: block;
+    margin-top: 4px;
+    color: #153e44;
+    font: 800 22px/1.2 Georgia, Times New Roman, serif;
+  }
+  .sliding-window-step {
+    min-height: 44px;
+    margin: 0;
+    color: #4d6070;
+    line-height: 1.45;
+  }
+  .sliding-window-best {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-left: 4px solid #1f6f78;
+    border-radius: 8px;
+    background: rgba(31,111,120,0.08);
+    color: #153e44;
+    font-weight: 700;
+  }
+  @media (max-width: 720px) {
+    .sliding-window-demo { --cell-size: 38px; --gap: 6px; padding: 16px; }
+    .sliding-window-stats { grid-template-columns: 1fr; }
+  }
+</style>
+<div class='sliding-window-demo' data-sliding-window-demo>
+  <div class='sliding-window-grid'>
+    <div class='sliding-window-cell'>2</div>
+    <div class='sliding-window-cell'>1</div>
+    <div class='sliding-window-cell'>5</div>
+    <div class='sliding-window-cell'>1</div>
+    <div class='sliding-window-cell'>3</div>
+    <div class='sliding-window-cell'>2</div>
+    <div class='sliding-window-cell'>4</div>
+    <div class='sliding-window-frame'><span class='sliding-window-label'>size 3 window</span></div>
+  </div>
+  <p class='sliding-window-step' data-window-note></p>
+  <div class='sliding-window-stats'>
+    <div class='sliding-window-stat'>Window indexes<b data-window-indexes>0-2</b></div>
+    <div class='sliding-window-stat'>Current sum<b data-window-sum>8</b></div>
+    <div class='sliding-window-stat'>Best sum<b data-window-best>8</b></div>
+  </div>
+  <div class='sliding-window-best' data-window-result>Best window so far: [2, 1, 5]</div>
+</div>
+<script>
+(() => {
+  const root = document.currentScript.previousElementSibling;
+  const values = [2, 1, 5, 1, 3, 2, 4];
+  const windowSize = 3;
+  const windows = values.slice(0, values.length - windowSize + 1).map((_, start) => {
+    const items = values.slice(start, start + windowSize);
+    const sum = items.reduce((total, value) => total + value, 0);
+    return { start, end: start + windowSize - 1, items, sum };
+  });
+  let best = windows[0];
+  let index = 0;
+  const frame = root.querySelector('.sliding-window-frame');
+  const note = root.querySelector('[data-window-note]');
+  const indexes = root.querySelector('[data-window-indexes]');
+  const sum = root.querySelector('[data-window-sum]');
+  const bestSum = root.querySelector('[data-window-best]');
+  const result = root.querySelector('[data-window-result]');
+
+  function render() {
+    const current = windows[index];
+    if (current.sum > best.sum) best = current;
+    frame.style.setProperty('--step', current.start);
+    indexes.textContent = `${current.start}-${current.end}`;
+    sum.textContent = current.sum;
+    bestSum.textContent = best.sum;
+    note.textContent = index === 0
+      ? `Start by summing the first ${windowSize} values: ${current.items.join(' + ')}.`
+      : `Slide right: subtract ${values[current.start - 1]}, add ${values[current.end]}, then compare the new sum.`;
+    result.textContent = `Best window so far: [${best.items.join(', ')}]`;
+    index = (index + 1) % windows.length;
+    if (index === 0) best = windows[0];
+  }
+
+  render();
+  window.setInterval(render, 1500);
+})();
+</script>
   </div>
 </div></div>
   </section>
