@@ -164,7 +164,7 @@ cat <<'JSON' | node "$SKILL_DIR/scripts/render-html.js" \
     {
       "heading": "Checkout Flow",
       "text": "Explanation text shown above the diagram.",
-      "mermaid": "flowchart TD\n  User --> API --> Gateway"
+      "mermaid": "flowchart LR\n  User --> API --> Gateway"
     }
   ]
 }
@@ -187,7 +187,7 @@ cat <<'JSON' | node "$SKILL_DIR/scripts/render-html.js" \
     {
       "heading": "Checkout Flow",
       "text": "Explanation text shown above the diagram.",
-      "mermaid": "flowchart TD\n  User --> API --> Gateway"
+      "mermaid": "flowchart LR\n  User --> API --> Gateway"
     }
   ]
 }
@@ -211,7 +211,7 @@ The input JSON shape is:
     {
       "heading": "Checkout Flow",
       "text": "Explanation text shown above the diagram.",
-      "mermaid": "flowchart TD\n  User --> API --> Gateway"
+      "mermaid": "flowchart LR\n  User --> API --> Gateway"
     }
   ]
 }
@@ -233,7 +233,7 @@ Flexible block input shape:
           { "path": "src/payments/gateway.ts", "note": "Wraps provider calls" }
         ] },
         { "type": "callout", "title": "Boundary", "text": "Payment provider details stay behind the gateway." },
-        { "type": "mermaid", "mermaid": "flowchart TD\n  Checkout --> Gateway --> Provider" },
+        { "type": "mermaid", "mermaid": "flowchart LR\n  Checkout --> Gateway --> Provider" },
         { "type": "animation", "content": "<canvas id='demo'></canvas><script>console.log('run');</script>" }
       ]
     }

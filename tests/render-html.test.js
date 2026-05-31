@@ -12,66 +12,66 @@ const {
 } = require('../skills/visual-explaining/scripts/render-html.js');
 
 test('sanitizeMermaidSource quotes flowchart labels with package-style paths', () => {
-  const source = 'flowchart TD\n  Shared[SHARED[@faktoora/shared/lib/foo]] --> App';
+  const source = 'flowchart LR\n  Shared[SHARED[@faktoora/shared/lib/foo]] --> App';
 
   assert.equal(
     sanitizeMermaidSource(source),
-    'flowchart TD\n  Shared["SHARED[@faktoora/shared/lib/foo]"] --> App',
+    'flowchart LR\n  Shared["SHARED[@faktoora/shared/lib/foo]"] --> App',
   );
 });
 
 test('sanitizeMermaidSource quotes flowchart labels with Mermaid-sensitive punctuation', () => {
-  const source = 'flowchart TD\n  Api[svc/auth:v2 {public}] --> Worker';
+  const source = 'flowchart LR\n  Api[svc/auth:v2 {public}] --> Worker';
 
   assert.equal(
     sanitizeMermaidSource(source),
-    'flowchart TD\n  Api["svc/auth:v2 {public}"] --> Worker',
+    'flowchart LR\n  Api["svc/auth:v2 {public}"] --> Worker',
   );
 });
 
 test('sanitizeMermaidSource quotes simple flowchart labels as a strict default', () => {
-  const source = 'flowchart TD\n  User[Shared Cache] --> API';
+  const source = 'flowchart LR\n  User[Shared Cache] --> API';
 
-  assert.equal(sanitizeMermaidSource(source), 'flowchart TD\n  User["Shared Cache"] --> API');
+  assert.equal(sanitizeMermaidSource(source), 'flowchart LR\n  User["Shared Cache"] --> API');
 });
 
 test('sanitizeMermaidSource preserves labels that are already quoted', () => {
-  const source = 'flowchart TD\n  Shared["Already quoted / stable"] --> App';
+  const source = 'flowchart LR\n  Shared["Already quoted / stable"] --> App';
 
-  assert.equal(sanitizeMermaidSource(source), 'flowchart TD\n  Shared["Already quoted / stable"] --> App');
+  assert.equal(sanitizeMermaidSource(source), 'flowchart LR\n  Shared["Already quoted / stable"] --> App');
 });
 
 test('sanitizeMermaidSource normalizes multiline quoted labels with escaped nested quotes', () => {
-  const source = 'flowchart TD\n  DB["(\\"Database\n(Prisma)\\")"] --> Resolver';
+  const source = 'flowchart LR\n  DB["(\\"Database\n(Prisma)\\")"] --> Resolver';
 
   assert.equal(
     sanitizeMermaidSource(source),
-    'flowchart TD\n  DB["(Database<br/>(Prisma))"] --> Resolver',
+    'flowchart LR\n  DB["(Database<br/>(Prisma))"] --> Resolver',
   );
 });
 
 test('sanitizeMermaidSource quotes labels with nested brackets', () => {
-  const source = 'flowchart TD\n  Cache[cache[tenant-a]/primary] --> API';
+  const source = 'flowchart LR\n  Cache[cache[tenant-a]/primary] --> API';
 
   assert.equal(
     sanitizeMermaidSource(source),
-    'flowchart TD\n  Cache["cache[tenant-a]/primary"] --> API',
+    'flowchart LR\n  Cache["cache[tenant-a]/primary"] --> API',
   );
 });
 
 test('sanitizeMermaidSource quotes decision labels with bracket notation', () => {
-  const source = 'flowchart TD\n  c3{Device AND userFeatures[type]?} -->|yes| c4';
+  const source = 'flowchart LR\n  c3{Device AND userFeatures[type]?} -->|yes| c4';
 
   assert.equal(
     sanitizeMermaidSource(source),
-    'flowchart TD\n  c3{"Device AND userFeatures[type]?"} -->|yes| c4',
+    'flowchart LR\n  c3{"Device AND userFeatures[type]?"} -->|yes| c4',
   );
 });
 
 test('sanitizeMermaidSource quotes simple decision labels as a strict default', () => {
-  const source = 'flowchart TD\n  Gate{Has access} -->|yes| Done';
+  const source = 'flowchart LR\n  Gate{Has access} -->|yes| Done';
 
-  assert.equal(sanitizeMermaidSource(source), 'flowchart TD\n  Gate{"Has access"} -->|yes| Done');
+  assert.equal(sanitizeMermaidSource(source), 'flowchart LR\n  Gate{"Has access"} -->|yes| Done');
 });
 
 test('sanitizeMermaidSource quotes punctuation-heavy labels inside subgraphs', () => {
@@ -94,22 +94,22 @@ test('sanitizeMermaidSource quotes punctuation-heavy labels inside subgraphs', (
 });
 
 test('sanitizeMermaidSource normalizes edge labels separately from node labels', () => {
-  const source = 'flowchart TD\n  A -->|reads [draft] "fast"| B';
+  const source = 'flowchart LR\n  A -->|reads [draft] "fast"| B';
 
   assert.equal(
     sanitizeMermaidSource(source),
-    'flowchart TD\n  A -->|reads (draft) \'fast\'| B',
+    'flowchart LR\n  A -->|reads (draft) \'fast\'| B',
   );
 });
 
 test('sanitizeMermaidSource leaves unmatched labels untouched instead of corrupting the line', () => {
-  const source = 'flowchart TD\n  Broken[still-open --> Next';
+  const source = 'flowchart LR\n  Broken[still-open --> Next';
 
   assert.equal(sanitizeMermaidSource(source), source);
 });
 
 test('sanitizeMermaidSource is idempotent for quoted flowchart labels', () => {
-  const source = 'flowchart TD\n  Shared[SHARED[@faktoora/shared/lib/foo]] --> App';
+  const source = 'flowchart LR\n  Shared[SHARED[@faktoora/shared/lib/foo]] --> App';
   const once = sanitizeMermaidSource(source);
 
   assert.equal(sanitizeMermaidSource(once), once);
@@ -122,7 +122,7 @@ test('renderVisualExplainerHtml embeds sanitized Mermaid source', () => {
       {
         heading: 'Flow',
         text: 'Checks HTML embedding.',
-        mermaid: 'flowchart TD\n  Shared[SHARED[@faktoora/shared/lib/foo]] --> App',
+        mermaid: 'flowchart LR\n  Shared[SHARED[@faktoora/shared/lib/foo]] --> App',
       },
     ],
   });
@@ -150,7 +150,7 @@ test('renderVisualExplainerHtml renders ordered flexible blocks', () => {
               { path: 'src/workers/jobs.ts', note: 'Consumes unchanged payloads' },
             ],
           },
-          { type: 'mermaid', mermaid: 'flowchart TD\n  API[src/api/jobs.ts] --> Queue' },
+          { type: 'mermaid', mermaid: 'flowchart LR\n  API[src/api/jobs.ts] --> Queue' },
         ],
       },
     ],
@@ -265,7 +265,7 @@ test('renderVisualExplainerHtml keeps wrapped page titles readable', () => {
       {
         heading: 'Flow',
         text: 'Checks header title spacing.',
-        mermaid: 'flowchart TD\n  Start[Start] --> Done[Done]',
+        mermaid: 'flowchart LR\n  Start[Start] --> Done[Done]',
       },
     ],
   });
@@ -326,7 +326,7 @@ test('renderVisualExplainerHtml stores Cytoscape instance before resize observer
       {
         heading: 'Flow',
         text: 'Checks Cytoscape resize handling.',
-        mermaid: 'flowchart TD\n  Start[Start] --> Done[Done]',
+        mermaid: 'flowchart LR\n  Start[Start] --> Done[Done]',
       },
     ],
   });
@@ -344,7 +344,7 @@ test('renderVisualExplainerHtml configures Cytoscape labels to stay inside nodes
         blocks: [
           {
             type: 'mermaid',
-            mermaid: 'flowchart TD\n  A[Group A\\nisDisabledField] --> B[guard fires: true\\ndisabled = true]',
+            mermaid: 'flowchart LR\n  A[Group A\\nisDisabledField] --> B[guard fires: true\\ndisabled = true]',
           },
         ],
       },
@@ -364,7 +364,7 @@ test('renderVisualExplainerHtml configures Cytoscape font styling', () => {
         blocks: [
           {
             type: 'mermaid',
-            mermaid: 'flowchart TD\n  A[SMALL plan<br/>allocation = 0<br/>noFreeInvoice = true]',
+            mermaid: 'flowchart LR\n  A[SMALL plan<br/>allocation = 0<br/>noFreeInvoice = true]',
           },
         ],
       },
@@ -385,7 +385,7 @@ test('renderVisualExplainerHtml configures Cytoscape Dagre layout and arrow rout
         blocks: [
           {
             type: 'mermaid',
-            mermaid: 'flowchart TD\n  API[API] --> DB[(Database<br/>(Prisma))]',
+            mermaid: 'flowchart LR\n  API[API] --> DB[(Database<br/>(Prisma))]',
           },
         ],
       },
@@ -482,7 +482,7 @@ test('renderVisualExplainerHtml adds interactive diagram navigation toolbar', ()
         blocks: [
           {
             type: 'mermaid',
-            mermaid: 'flowchart TD\n  A --> B',
+            mermaid: 'flowchart LR\n  A --> B',
           },
         ],
       },

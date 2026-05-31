@@ -125,7 +125,7 @@ cat <<'JSON' | node "$SKILL_DIR/scripts/render-html.js" \
     {
       "heading": "Request Flow",
       "text": "Text shown above the diagram.",
-      "mermaid": "flowchart TD\n  Client --> API --> Service"
+      "mermaid": "flowchart LR\n  Client --> API --> Service"
     }
   ]
 }
@@ -148,7 +148,7 @@ cat <<'JSON' | node "$SKILL_DIR/scripts/render-html.js" \
     {
       "heading": "Request Flow",
       "text": "Text shown above the diagram.",
-      "mermaid": "flowchart TD\n  Client --> API --> Service"
+      "mermaid": "flowchart LR\n  Client --> API --> Service"
     }
   ]
 }
@@ -176,7 +176,7 @@ Legacy diagram-led sections still work:
     {
       "heading": "Request Flow",
       "text": "Text shown above the diagram.",
-      "mermaid": "flowchart TD\n  Client --> API --> Service"
+      "mermaid": "flowchart LR\n  Client --> API --> Service"
     },
     {
       "heading": "Background Jobs",
@@ -184,7 +184,7 @@ Legacy diagram-led sections still work:
         "Jobs are queued by the API.",
         "Workers consume and persist results."
       ],
-      "mermaid": "flowchart TD\n  API --> Queue --> Worker --> DB"
+      "mermaid": "flowchart LR\n  API --> Queue --> Worker --> DB"
     }
   ]
 }
@@ -207,7 +207,7 @@ Flexible sections use ordered blocks:
           { "path": "src/domain/service.ts", "note": "Owns business logic" }
         ] },
         { "type": "callout", "title": "Boundary", "text": "Route handlers should stay thin." },
-        { "type": "mermaid", "mermaid": "flowchart TD\n  Route --> Service --> Database" }
+        { "type": "mermaid", "mermaid": "flowchart LR\n  Route --> Service --> Database" }
       ]
     }
   ]

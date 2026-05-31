@@ -504,7 +504,7 @@ function printHelp() {
   console.log('    {');
   console.log('      "heading": "Checkout Flow",');
   console.log('      "text": "Explanation text above the diagram.",');
-  console.log('      "mermaid": "flowchart TD\\n  A-->B"');
+  console.log('      "mermaid": "flowchart LR\\n  A-->B"');
   console.log('    }');
   console.log('  ]');
   console.log('}');
