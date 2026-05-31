@@ -262,6 +262,16 @@ function sanitizeMermaidSource(source) {
   return trimmed;
 }
 
+function renderAnimationBlock(block) {
+  return [
+    '<div class="content-block content-block--animation">',
+    '  <div class="animation-frame">',
+    block.content || '',
+    '  </div>',
+    '</div>',
+  ].join('\n');
+}
+
 function renderMermaidBlock(block) {
   const mermaid = sanitizeMermaidSource(block.mermaid || '');
   if (!mermaid) {
@@ -302,6 +312,10 @@ function renderContentBlock(block) {
     return renderMermaidBlock(block);
   }
 
+  if (type === 'animation') {
+    return renderAnimationBlock(block);
+  }
+
   throw new Error(`Unsupported block type "${type}".`);
 }
 
@@ -310,10 +324,24 @@ function getSectionBlocks(section) {
     return section.blocks;
   }
 
-  return [
+  const blocks = [
     { type: 'text', text: section.text || '' },
-    { type: 'mermaid', mermaid: section.mermaid || '' },
   ];
+
+  if (section.mermaid) {
+    blocks.push({ type: 'mermaid', mermaid: section.mermaid || '' });
+  }
+
+  if (section.animation) {
+    blocks.push({ type: 'animation', content: section.animation || '' });
+  }
+
+  if (!section.mermaid && !section.animation) {
+    // Legacy fallback
+    blocks.push({ type: 'mermaid', mermaid: '' });
+  }
+
+  return blocks;
 }
 
 function renderSection(section, index) {
@@ -323,8 +351,8 @@ function renderSection(section, index) {
     throw new Error(`Section "${heading}" must contain at least one block.`);
   }
 
-  if (!Array.isArray(section.blocks) && !section.mermaid) {
-    throw new Error(`Section "${heading}" is missing Mermaid source.`);
+  if (!Array.isArray(section.blocks) && !section.mermaid && !section.animation) {
+    throw new Error(`Section "${heading}" is missing Mermaid source or Animation content.`);
   }
 
   return [

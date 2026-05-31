@@ -214,6 +214,34 @@
         line-height: 1.5;
       }
 
+      .content-block--animation {
+        min-width: 0;
+        border-radius: 18px;
+        padding: 20px;
+        background:
+          linear-gradient(180deg, rgba(252, 248, 241, 0.96), rgba(244, 235, 223, 0.82)),
+          repeating-linear-gradient(
+            135deg,
+            rgba(31, 111, 120, 0.05),
+            rgba(31, 111, 120, 0.05) 10px,
+            transparent 10px,
+            transparent 20px
+        );
+      }
+
+      .animation-frame {
+        width: 100%;
+        min-width: 0;
+        min-height: 240px;
+        height: auto;
+        border: 1px solid rgba(31, 111, 120, 0.18);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.74);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        position: relative;
+        overflow: hidden;
+      }
+
       .content-block--diagram {
         min-width: 0;
         border-radius: 18px;
@@ -336,7 +364,8 @@
         }
 
         .text-pane,
-        .content-block--diagram {
+        .content-block--diagram,
+        .content-block--animation {
           padding: 16px;
         }
 
@@ -354,7 +383,8 @@
           gap: 4px;
         }
 
-        .diagram-frame {
+        .diagram-frame,
+        .animation-frame {
           min-height: 180px;
           padding: 14px;
         }

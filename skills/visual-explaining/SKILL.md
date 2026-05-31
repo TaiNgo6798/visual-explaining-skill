@@ -124,8 +124,10 @@ Available block types:
 - `callout`: important decision, risk, convention, or takeaway
 - `files`: file paths with short notes
 - `mermaid`: diagram source rendered in the browser
+- `animation`: custom HTML/CSS/JS rendered directly in the block
 
 Use a `mermaid` block only when relationships, flow, dependencies, state, or sequence are clearer visually.
+Use an `animation` block only when custom interactivity, canvas animations, or complex HTML is needed to visualize something that a Mermaid diagram cannot handle.
 
 ### Step 5: Draft Mermaid Source
 
@@ -231,7 +233,8 @@ Flexible block input shape:
           { "path": "src/payments/gateway.ts", "note": "Wraps provider calls" }
         ] },
         { "type": "callout", "title": "Boundary", "text": "Payment provider details stay behind the gateway." },
-        { "type": "mermaid", "mermaid": "flowchart TD\n  Checkout --> Gateway --> Provider" }
+        { "type": "mermaid", "mermaid": "flowchart TD\n  Checkout --> Gateway --> Provider" },
+        { "type": "animation", "content": "<canvas id='demo'></canvas><script>console.log('run');</script>" }
       ]
     }
   ]
